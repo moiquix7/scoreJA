@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MANEJO DE PUNTOS - JA VINTO CENTRAL</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --mision: #6366f1;
+      --comunion: #f59e0b;
+      --relacion: #10b981;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card2: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #475569;
+      --danger: #ef4444;
+      --edit: #3b82f6;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 3rem;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      text-align: center;
+      padding: 1.5rem 1rem;
+      border-bottom: 3px solid var(--mision);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--mision), var(--comunion), var(--relacion));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      flex-wrap: wrap;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav button {
+      padding: 0.6rem 1.2rem;
+      border: 2px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    nav button.active,
+    nav button:hover {
+      background: var(--mision);
+      border-color: var(--mision);
+      color: #fff;
+    }
+
+    .section { display: none; max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
+    .section.active { display: block; }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .form-group label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+
+    input, select {
+      padding: 0.6rem 0.8rem;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--card2);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus { border-color: var(--mision); }
+
+    .btn {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { transform: scale(1.03); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--mision); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+    .btn-edit { background: var(--edit); color: #fff; padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+    .btn-success { background: var(--relacion); color: #fff; }
+    .btn-warning { background: var(--comunion); color: #fff; }
+
+    .action-btns { display: flex; gap: 0.4rem; }
+
+    .emoji-picker {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+
+    .emoji-picker span {
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.3rem;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .emoji-picker span:hover { background: var(--card2); }
+    .emoji-picker span.selected { border-color: var(--mision); background: rgba(99,102,241,0.2); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      padding: 0.7rem 0.5rem;
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    td {
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid rgba(71,85,105,0.4);
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: rgba(99,102,241,0.05); }
+
+    .participant-avatar {
+      font-size: 1.6rem;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .badge-mision { background: rgba(99,102,241,0.2); color: var(--mision); }
+    .badge-comunion { background: rgba(245,158,11,0.2); color: var(--comunion); }
+    .badge-relacion { background: rgba(16,185,129,0.2); color: var(--relacion); }
+
+    /* POINTS STEPPER */
+    .points-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .points-stepper .stepper-btn {
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.6rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+      color: #fff;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .points-stepper .stepper-btn:hover { transform: scale(1.1); }
+    .points-stepper .stepper-btn:active { transform: scale(0.93); }
+
+    .stepper-btn.minus {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 3px 12px rgba(239,68,68,0.4);
+    }
+
+    .stepper-btn.plus {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 3px 12px rgba(34,197,94,0.4);
+    }
+
+    .points-input-stepper {
+      width: 72px;
+      text-align: center;
+      padding: 0.5rem 0.3rem;
+      font-size: 1.5rem;
+      font-weight: 900;
+      background: var(--card2);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.3s;
+      -moz-appearance: textfield;
+    }
+
+    .points-input-stepper:focus { border-color: var(--mision); }
+    .points-input-stepper::-webkit-outer-spin-button,
+    .points-input-stepper::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .points-input-stepper.invalid {
+      border-color: var(--danger) !important;
+      animation: shake 0.35s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+
+    .step-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 2px;
+      letter-spacing: 1px;
+    }
+
+    /* Ranking */
+    .ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--card2);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      transition: transform 0.3s;
+    }
+
+    .ranking-item:hover { transform: translateX(4px); }
+
+    .ranking-pos {
+      font-size: 1.6rem;
+      font-weight: 900;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .ranking-pos.gold { color: #fbbf24; }
+    .ranking-pos.silver { color: #9ca3af; }
+    .ranking-pos.bronze { color: #d97706; }
+
+    .ranking-info { flex: 1; }
+
+    .ranking-name {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .ranking-bar-bg {
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 0.3rem;
+    }
+
+    .ranking-bar {
+      height: 100%;
+      border-radius: 10px;
+      background: linear-gradient(90deg, var(--mision), var(--relacion));
+      transition: width 0.6s ease;
+    }
+
+    .ranking-details {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .ranking-total {
+      font-size: 1.4rem;
+      font-weight: 900;
+      min-width: 60px;
+      text-align: right;
+      color: var(--mision);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .activity-select-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .assign-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .color-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+
+    .dot-mision { background: var(--mision); }
+    .dot-comunion { background: var(--comunion); }
+    .dot-relacion { background: var(--relacion); }
+
+    .legend {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .legend span { display: flex; align-items: center; gap: 4px; }
+
+    .th-mision { color: var(--mision); }
+    .th-comunion { color: var(--comunion); }
+    .th-relacion { color: var(--relacion); }
+
+    .img-preview {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+      border: 2px solid var(--border);
+    }
+
+    .logo-option {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-option label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .logo-option input[type="radio"] { accent-color: var(--mision); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 450px;
+      position: relative;
+    }
+
+    .modal h3 {
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .modal .close-btn {
+      position: absolute;
+      top: 0.8rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .modal .close-btn:hover { color: var(--danger); }
+
+    .modal .form-group { margin-bottom: 0.8rem; min-width: unset; }
+
+    .modal .btn { margin-top: 0.5rem; width: 100%; padding: 0.7rem; }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.1rem; }
+      .form-group { min-width: 100%; }
+      .ranking-item { flex-wrap: wrap; }
+      .points-stepper .stepper-btn { width: 44px; height: 44px; font-size: 1.4rem; }
+      .points-input-stepper { width: 64px; font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏆 Manejo de Puntos - JA Vinto Central</h1>
+  <p>Sistema de gestión de puntos por actividades</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('participantes', this)">👥 Participantes</button>
+  <button onclick="showSection('actividades', this)">📋 Actividades</button>
+  <button onclick="showSection('asignar', this)">🎯 Asignar Puntos</button>
+  <button onclick="showSection('ranking', this)">🏅 Ranking</button>
+</nav>
+
+<!-- SECCIÓN 1: PARTICIPANTES -->
+<div class="section active" id="sec-participantes">
+  <div class="card">
+    <h2>👥 Registrar Participante</h2>
+    <div class="logo-option">
+      <label><input type="radio" name="logoType" value="emoji" checked onchange="toggleLogoType()"> Usar Emoji</label>
+      <label><input type="radio" name="logoType" value="image" onchange="toggleLogoType()"> Subir Imagen</label>
+    </div>
+    <div id="emojiSection">
+      <label style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Selecciona un emoji</label>
+      <div class="emoji-picker" id="emojiPicker"></div>
+    </div>
+    <div id="imageSection" style="display:none; margin-bottom:0.8rem;">
+      <label style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Imagen / Logo</label><br>
+      <input type="file" id="participantImage" accept="image/*" style="margin-top:0.3rem;font-size:0.85rem;">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre del Participante</label>
+        <input type="text" id="participantName" placeholder="Ej: Grupo Esperanza">
+      </div>
+      <button class="btn btn-primary" onclick="addParticipant()" style="align-self:flex-end;">+ Agregar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📃 Lista de Participantes</h2>
+    <div id="participantList"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN 2: ACTIVIDADES -->
+<div class="section" id="sec-actividades">
+  <div class="card">
+    <h2>📋 Registrar Actividad</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre de la Actividad</label>
+        <input type="text" id="activityName" placeholder="Ej: Estudio Bíblico">
+      </div>
+      <div class="form-group" style="max-width:180px;">
+        <label>Tipo</label>
+        <select id="activityType">
+          <option value="Mision">🚀 Misión</option>
+          <option value="Comunion">🙏 Comunión</option>
+          <option value="Relacion">🤝 Relación</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="addActivity()" style="align-self:flex-end;">+ Agregar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📃 Lista de Actividades</h2>
+    <div id="activityList"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN 3: ASIGNAR PUNTOS -->
+<div class="section" id="sec-asignar">
+  <div class="card">
+    <div class="assign-header">
+      <h2>🎯 Asignar Puntos</h2>
+      <div class="legend">
+        <span><span class="color-dot dot-mision"></span> Misión</span>
+        <span><span class="color-dot dot-comunion"></span> Comunión</span>
+        <span><span class="color-dot dot-relacion"></span> Relación</span>
+      </div>
+    </div>
+    <div class="activity-select-row">
+      <div class="form-group" style="max-width:300px;">
+        <label>Seleccionar Actividad</label>
+        <select id="assignActivity" onchange="renderAssignTable()"></select>
+      </div>
+      <button class="btn btn-success" onclick="savePoints()" style="align-self:flex-end;">💾 Guardar Puntos</button>
+    </div>
+    <div style="overflow-x:auto;" id="assignTableWrap"></div>
+  </div>
+  <div class="card">
+    <h2>📊 Resumen de Puntos por Participante</h2>
+    <div style="overflow-x:auto;" id="summaryTableWrap"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN 4: RANKING -->
+<div class="section" id="sec-ranking">
+  <div class="card">
+    <h2>🏅 Ranking General</h2>
+    <div id="rankingList"></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PARTICIPANTE -->
+<div class="modal-overlay" id="modalEditParticipant">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('modalEditParticipant')">&times;</button>
+    <h3>✏️ Editar Participante</h3>
+    <div class="logo-option">
+      <label><input type="radio" name="editLogoType" value="emoji" checked onchange="toggleEditLogoType()"> Emoji</label>
+      <label><input type="radio" name="editLogoType" value="image" onchange="toggleEditLogoType()"> Imagen</label>
+    </div>
+    <div id="editEmojiSection">
+      <label style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Emoji</label>
+      <div class="emoji-picker" id="editEmojiPicker"></div>
+    </div>
+    <div id="editImageSection" style="display:none; margin-bottom:0.8rem;">
+      <label style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Nueva imagen</label><br>
+      <input type="file" id="editParticipantImage" accept="image/*" style="margin-top:0.3rem;font-size:0.85rem;">
+    </div>
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="editParticipantName">
+    </div>
+    <input type="hidden" id="editParticipantId">
+    <button class="btn btn-primary" onclick="saveEditParticipant()">💾 Guardar Cambios</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR ACTIVIDAD -->
+<div class="modal-overlay" id="modalEditActivity">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('modalEditActivity')">&times;</button>
+    <h3>✏️ Editar Actividad</h3>
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="editActivityName">
+    </div>
+    <div class="form-group">
+      <label>Tipo</label>
+      <select id="editActivityType">
+        <option value="Mision">🚀 Misión</option>
+        <option value="Comunion">🙏 Comunión</option>
+        <option value="Relacion">🤝 Relación</option>
+      </select>
+    </div>
+    <input type="hidden" id="editActivityId">
+    <button class="btn btn-primary" onclick="saveEditActivity()">💾 Guardar Cambios</button>
+  </div>
+</div>
+
+<script>
+  // ========== DATA ==========
+  let participants = JSON.parse(localStorage.getItem('ja_participants') || '[]');
+  let activities = JSON.parse(localStorage.getItem('ja_activities') || '[]');
+  let points = JSON.parse(localStorage.getItem('ja_points') || '{}');
+
+  let selectedEmoji = '';
+  let editSelectedEmoji = '';
+  let idCounter = Date.now();
+  const uid = () => ++idCounter;
+
+  const emojis = ['⭐','🦁','🦅','🐺','🔥','💎','🌟','🎯','🏅','⚡','🛡️','🌊','🏔️','🌿','🎖️','👑','🚀','🙏','📖','🕊️','💪','🌈','🎵','❤️','✝️','📯','🕯️','🫒','🍇','☀️'];
+
+  const STEP = 10;
+
+  // ========== INIT ==========
+  function init() {
+    renderEmojiPicker();
+    renderParticipants();
+    renderActivities();
+    renderAssignTable();
+    renderSummary();
+    renderRanking();
+  }
+
+  function save() {
+    localStorage.setItem('ja_participants', JSON.stringify(participants));
+    localStorage.setItem('ja_activities', JSON.stringify(activities));
+    localStorage.setItem('ja_points', JSON.stringify(points));
+  }
+
+  // ========== NAVIGATION ==========
+  function showSection(name, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('sec-' + name).classList.add('active');
+    if (btn) btn.classList.add('active');
+    if (name === 'asignar') { populateAssignSelect(); renderAssignTable(); renderSummary(); }
+    if (name === 'ranking') renderRanking();
+  }
+
+  // ========== MODALS ==========
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // ========== EMOJI PICKER ==========
+  function renderEmojiPicker() {
+    document.getElementById('emojiPicker').innerHTML = emojis.map(e =>
+      `<span onclick="selectEmoji(this, '${e}')" ${selectedEmoji === e ? 'class="selected"' : ''}>${e}</span>`
+    ).join('');
+  }
+
+  function renderEditEmojiPicker() {
+    document.getElementById('editEmojiPicker').innerHTML = emojis.map(e =>
+      `<span onclick="selectEditEmoji(this, '${e}')" ${editSelectedEmoji === e ? 'class="selected"' : ''}>${e}</span>`
+    ).join('');
+  }
+
+  function selectEmoji(el, emoji) {
+    document.querySelectorAll('#emojiPicker span').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedEmoji = emoji;
+  }
+
+  function selectEditEmoji(el, emoji) {
+    document.querySelectorAll('#editEmojiPicker span').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    editSelectedEmoji = emoji;
+  }
+
+  function toggleLogoType() {
+    const type = document.querySelector('input[name="logoType"]:checked').value;
+    document.getElementById('emojiSection').style.display = type === 'emoji' ? '' : 'none';
+    document.getElementById('imageSection').style.display = type === 'image' ? '' : 'none';
+  }
+
+  function toggleEditLogoType() {
+    const type = document.querySelector('input[name="editLogoType"]:checked').value;
+    document.getElementById('editEmojiSection').style.display = type === 'emoji' ? '' : 'none';
+    document.getElementById('editImageSection').style.display = type === 'image' ? '' : 'none';
+  }
+
+  // ========== PARTICIPANTS ==========
+  function addParticipant() {
+    const name = document.getElementById('participantName').value.trim();
+    if (!name) return alert('Ingresa un nombre para el participante.');
+    const type = document.querySelector('input[name="logoType"]:checked').value;
+    if (type === 'emoji') {
+      if (!selectedEmoji) return alert('Selecciona un emoji.');
+      participants.push({ id: uid(), name, logo: selectedEmoji, logoType: 'emoji' });
+      save(); renderParticipants();
+      document.getElementById('participantName').value = '';
+      selectedEmoji = ''; renderEmojiPicker();
+    } else {
+      const file = document.getElementById('participantImage').files[0];
+      if (!file) return alert('Selecciona una imagen.');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        participants.push({ id: uid(), name, logo: e.target.result, logoType: 'image' });
+        save(); renderParticipants();
+        document.getElementById('participantName').value = '';
+        document.getElementById('participantImage').value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removeParticipant(id) {
+    if (!confirm('¿Eliminar este participante y todos sus puntos?')) return;
+    participants = participants.filter(p => p.id !== id);
+    Object.keys(points).forEach(k => { if (k.startsWith(id + '-')) delete points[k]; });
+    save(); renderParticipants();
+  }
+
+  function editParticipant(id) {
+    const p = participants.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('editParticipantId').value = id;
+    document.getElementById('editParticipantName').value = p.name;
+    if (p.logoType === 'image') {
+      document.querySelector('input[name="editLogoType"][value="image"]').checked = true;
+    } else {
+      document.querySelector('input[name="editLogoType"][value="emoji"]').checked = true;
+    }
+    toggleEditLogoType();
+    editSelectedEmoji = p.logoType === 'emoji' ? p.logo : '';
+    renderEditEmojiPicker();
+    document.getElementById('editParticipantImage').value = '';
+    openModal('modalEditParticipant');
+  }
+
+  function saveEditParticipant() {
+    const id = parseInt(document.getElementById('editParticipantId').value);
+    const name = document.getElementById('editParticipantName').value.trim();
+    if (!name) return alert('El nombre no puede estar vacío.');
+    const p = participants.find(x => x.id === id);
+    if (!p) return;
+    p.name = name;
+    const type = document.querySelector('input[name="editLogoType"]:checked').value;
+    if (type === 'emoji') {
+      if (editSelectedEmoji) { p.logo = editSelectedEmoji; p.logoType = 'emoji'; }
+      save(); renderParticipants(); closeModal('modalEditParticipant');
+    } else {
+      const file = document.getElementById('editParticipantImage').files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          p.logo = e.target.result; p.logoType = 'image';
+          save(); renderParticipants(); closeModal('modalEditParticipant');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        save(); renderParticipants(); closeModal('modalEditParticipant');
+      }
+    }
+  }
+
+  function renderParticipants() {
+    const el = document.getElementById('participantList');
+    if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay participantes registrados.</div>'; return; }
+    el.innerHTML = `<table>
+      <tr><th>#</th><th>Logo</th><th>Nombre</th><th>Acciones</th></tr>
+      ${participants.map((p, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${logoHTML(p)}</td>
+        <td>${esc(p.name)}</td>
+        <td><div class="action-btns">
+          <button class="btn btn-edit" onclick="editParticipant(${p.id})">✏️</button>
+          <button class="btn btn-danger" onclick="removeParticipant(${p.id})">✕</button>
+        </div></td>
+      </tr>`).join('')}
+    </table>`;
+  }
+
+  // ========== ACTIVITIES ==========
+  function addActivity() {
+    const name = document.getElementById('activityName').value.trim();
+    const type = document.getElementById('activityType').value;
+    if (!name) return alert('Ingresa un nombre para la actividad.');
+    activities.push({ id: uid(), name, type });
+    save(); renderActivities();
+    document.getElementById('activityName').value = '';
+  }
+
+  function removeActivity(id) {
+    if (!confirm('¿Eliminar esta actividad y sus puntos asociados?')) return;
+    activities = activities.filter(a => a.id !== id);
+    Object.keys(points).forEach(k => { if (k.endsWith('-' + id)) delete points[k]; });
+    save(); renderActivities();
+  }
+
+  function editActivity(id) {
+    const a = activities.find(x => x.id === id);
+    if (!a) return;
+    document.getElementById('editActivityId').value = id;
+    document.getElementById('editActivityName').value = a.name;
+    document.getElementById('editActivityType').value = a.type;
+    openModal('modalEditActivity');
+  }
+
+  function saveEditActivity() {
+    const id = parseInt(document.getElementById('editActivityId').value);
+    const name = document.getElementById('editActivityName').value.trim();
+    const type = document.getElementById('editActivityType').value;
+    if (!name) return alert('El nombre no puede estar vacío.');
+    const a = activities.find(x => x.id === id);
+    if (!a) return;
+    a.name = name; a.type = type;
+    save(); renderActivities(); closeModal('modalEditActivity');
+  }
+
+  function renderActivities() {
+    const el = document.getElementById('activityList');
+    if (!activities.length) { el.innerHTML = '<div class="empty-state">No hay actividades registradas.</div>'; return; }
+    el.innerHTML = `<table>
+      <tr><th>#</th><th>Actividad</th><th>Tipo</th><th>Acciones</th></tr>
+      ${activities.map((a, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${esc(a.name)}</td>
+        <td><span class="badge badge-${a.type.toLowerCase()}">${a.type}</span></td>
+        <td><div class="action-btns">
+          <button class="btn btn-edit" onclick="editActivity(${a.id})">✏️</button>
+          <button class="btn btn-danger" onclick="removeActivity(${a.id})">✕</button>
+        </div></td>
+      </tr>`).join('')}
+    </table>`;
+  }
+
+  // ========== ASSIGN POINTS ==========
+  function populateAssignSelect() {
+    const sel = document.getElementById('assignActivity');
+    sel.innerHTML = '<option value="">-- Selecciona una actividad --</option>' +
+      activities.map(a => `<option value="${a.id}">${a.name} (${a.type})</option>`).join('');
+  }
+
+  function changePoints(pId, aId, delta) {
+    const key = pId + '-' + aId;
+    let val = (points[key] || 0) + delta;
+    if (val < 0) val = 0;
+    points[key] = val;
+    const input = document.getElementById('pv-' + key);
+    if (input) input.value = val;
+  }
+
+  function onPointsInput(pId, aId) {
+    const key = pId + '-' + aId;
+    const input = document.getElementById('pv-' + key);
+    let raw = input.value;
+
+    // Allow empty while typing
+    if (raw === '') return;
+
+    let val = parseInt(raw);
+
+    // Validate: not a number or negative
+    if (isNaN(val) || val < 0) {
+      input.classList.add('invalid');
+      setTimeout(() => input.classList.remove('invalid'), 400);
+      val = 0;
+      input.value = 0;
+    }
+
+    points[key] = val;
+  }
+
+  function onPointsBlur(pId, aId) {
+    const key = pId + '-' + aId;
+    const input = document.getElementById('pv-' + key);
+    let val = parseInt(input.value);
+
+    if (isNaN(val) || val < 0) val = 0;
+
+    points[key] = val;
+    input.value = val;
+    input.classList.remove('invalid');
+  }
+
+  function onPointsKeydown(e, pId, aId) {
+    // Block minus sign and 'e'
+    if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+      e.preventDefault();
+      const input = document.getElementById('pv-' + pId + '-' + aId);
+      input.classList.add('invalid');
+      setTimeout(() => input.classList.remove('invalid'), 400);
+    }
+  }
+
+  function renderAssignTable() {
+    const wrap = document.getElementById('assignTableWrap');
+    const actId = document.getElementById('assignActivity').value;
+
+    if (!participants.length || !actId) {
+      wrap.innerHTML = '<div class="empty-state">Selecciona una actividad y asegúrate de tener participantes registrados.</div>';
+      return;
+    }
+
+    const act = activities.find(a => a.id == actId);
+    if (!act) { wrap.innerHTML = ''; return; }
+
+    const colorClass = act.type.toLowerCase();
+    wrap.innerHTML = `<table>
+      <tr>
+        <th>Participante</th>
+        <th class="th-${colorClass}" style="text-align:center;">${esc(act.name)} <span class="badge badge-${colorClass}">${act.type}</span></th>
+      </tr>
+      ${participants.map(p => {
+        const key = p.id + '-' + act.id;
+        const val = points[key] || 0;
+        return `<tr>
+          <td>${logoHTML(p)} ${esc(p.name)}</td>
+          <td>
+            <div class="points-stepper">
+              <button class="stepper-btn minus" onclick="changePoints(${p.id},${act.id},-${STEP})">−</button>
+              <div>
+                <input type="number"
+                       class="points-input-stepper"
+                       id="pv-${key}"
+                       value="${val}"
+                       min="0"
+                       style="color:var(--${colorClass})"
+                       oninput="onPointsInput(${p.id},${act.id})"
+                       onblur="onPointsBlur(${p.id},${act.id})"
+                       onkeydown="onPointsKeydown(event,${p.id},${act.id})">
+                <div class="step-label">±${STEP} pts</div>
+              </div>
+              <button class="stepper-btn plus" onclick="changePoints(${p.id},${act.id},${STEP})">+</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')}
+    </table>`;
+  }
+
+  function savePoints() {
+    const actId = document.getElementById('assignActivity').value;
+    if (!actId) return alert('Selecciona una actividad.');
+
+    // Final validation before save
+    let hasError = false;
+    participants.forEach(p => {
+      const key = p.id + '-' + actId;
+      const input = document.getElementById('pv-' + key);
+      if (input) {
+        let val = parseInt(input.value);
+        if (isNaN(val) || val < 0) {
+          val = 0;
+          input.value = 0;
+          input.classList.add('invalid');
+          setTimeout(() => input.classList.remove('invalid'), 400);
+          hasError = true;
+        }
+        points[key] = val;
+      }
+    });
+
+    if (hasError) {
+      alert('⚠️ Se corrigieron valores negativos o inválidos a 0.');
+    }
+
+    save();
+    renderSummary();
+    renderRanking();
+    alert('✅ Puntos guardados correctamente.');
+  }
+
+  function renderSummary() {
+    const wrap = document.getElementById('summaryTableWrap');
+    if (!participants.length) { wrap.innerHTML = '<div class="empty-state">No hay datos.</div>'; return; }
+
+    function getTypeTotal(pId, type) {
+      return activities.filter(a => a.type === type).reduce((sum, a) => sum + (points[pId + '-' + a.id] || 0), 0);
+    }
+
+    wrap.innerHTML = `<table>
+      <tr>
+        <th>Participante</th>
+        <th class="th-mision" style="text-align:center;">🚀 Misión</th>
+        <th class="th-comunion" style="text-align:center;">🙏 Comunión</th>
+        <th class="th-relacion" style="text-align:center;">🤝 Relación</th>
+        <th style="text-align:center;">Total</th>
+      </tr>
+      ${participants.map(p => {
+        const m = getTypeTotal(p.id, 'Mision');
+        const c = getTypeTotal(p.id, 'Comunion');
+        const r = getTypeTotal(p.id, 'Relacion');
+        return `<tr>
+          <td>${logoHTML(p)} ${esc(p.name)}</td>
+          <td style="text-align:center;color:var(--mision);font-weight:700;">${m}</td>
+          <td style="text-align:center;color:var(--comunion);font-weight:700;">${c}</td>
+          <td style="text-align:center;color:var(--relacion);font-weight:700;">${r}</td>
+          <td style="text-align:center;font-weight:900;">${m + c + r}</td>
+        </tr>`;
+      }).join('')}
+    </table>`;
+  }
+
+  // ========== RANKING ==========
+  function renderRanking() {
+    const el = document.getElementById('rankingList');
+    if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay participantes.</div>'; return; }
+
+    const data = participants.map(p => {
+      const m = activities.filter(a => a.type === 'Mision').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
+      const c = activities.filter(a => a.type === 'Comunion').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
+      const r = activities.filter(a => a.type === 'Relacion').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
+      return { ...p, mision: m, comunion: c, relacion: r, total: m + c + r };
+    }).sort((a, b) => b.total - a.total);
+
+    const max = Math.max(data[0]?.total || 1, 1);
+
+    el.innerHTML = data.map((p, i) => {
+      const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+      const pct = (p.total / max * 100).toFixed(1);
+      return `<div class="ranking-item">
+        <div class="ranking-pos ${posClass}">${medal}</div>
+        <div style="font-size:1.8rem;">${p.logoType === 'image' ? `<img src="${p.logo}" class="img-preview" style="width:42px;height:42px;">` : p.logo}</div>
+        <div class="ranking-info">
+          <div class="ranking-name">${esc(p.name)}</div>
+          <div class="ranking-bar-bg"><div class="ranking-bar" style="width:${pct}%"></div></div>
+          <div class="ranking-details">
+            <span><span class="color-dot dot-mision"></span> ${p.mision}</span>
+            <span><span class="color-dot dot-comunion"></span> ${p.comunion}</span>
+            <span><span class="color-dot dot-relacion"></span> ${p.relacion}</span>
+          </div>
+        </div>
+        <div class="ranking-total">${p.total}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ========== UTILS ==========
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function logoHTML(p) {
+    return p.logoType === 'image'
+      ? `<img src="${p.logo}" class="img-preview">`
+      : `<span class="participant-avatar">${p.logo}</span>`;
+  }
+
+  // ========== START ==========
+  init();
+  populateAssignSelect();
+</script>
+
+</body>
+</html>
