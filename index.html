@@ -371,6 +371,48 @@
       flex-wrap: wrap;
     }
 
+    /* Searchable dropdown */
+    .searchable-select {
+      position: relative;
+    }
+
+    .searchable-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--card2);
+      border: 2px solid var(--mision);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 200;
+    }
+
+    .searchable-dropdown.open { display: block; }
+
+    .searchable-dropdown-item {
+      padding: 0.6rem 0.8rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .searchable-dropdown-item:hover,
+    .searchable-dropdown-item.selected-item {
+      background: rgba(99,102,241,0.2);
+    }
+
+    .searchable-dropdown-empty {
+      padding: 0.6rem 0.8rem;
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
     .assign-header {
       display: flex;
       justify-content: space-between;
@@ -572,7 +614,14 @@
     <div class="activity-select-row">
       <div class="form-group" style="max-width:300px;">
         <label>Seleccionar Actividad</label>
-        <select id="assignActivity" onchange="renderAssignTable()"></select>
+        <div class="searchable-select">
+          <input type="text" id="assignActivitySearch" placeholder="Buscar actividad..." autocomplete="off"
+                 oninput="filterAssignActivities()"
+                 onfocus="openAssignDropdown()"
+                 onblur="scheduleCloseAssignDropdown()">
+          <div class="searchable-dropdown" id="assignActivityDropdown"></div>
+          <input type="hidden" id="assignActivity" value="">
+        </div>
       </div>
       <button class="btn btn-success" onclick="savePoints()" style="align-self:flex-end;">💾 Guardar Puntos</button>
     </div>
@@ -869,10 +918,74 @@
   }
 
   // ========== ASSIGN POINTS ==========
+  let _closeAssignTimeout = null;
+
   function populateAssignSelect() {
-    const sel = document.getElementById('assignActivity');
-    sel.innerHTML = '<option value="">-- Selecciona una actividad --</option>' +
-      activities.map(a => `<option value="${a.id}">${a.name} (${a.type})</option>`).join('');
+    const hiddenInput = document.getElementById('assignActivity');
+    const currentId = hiddenInput ? hiddenInput.value : '';
+    // If the currently selected activity was removed, clear the selection
+    if (currentId && !activities.find(a => String(a.id) === currentId)) {
+      hiddenInput.value = '';
+      const searchInput = document.getElementById('assignActivitySearch');
+      if (searchInput) searchInput.value = '';
+      renderAssignTable();
+    }
+    // Refresh dropdown items in case it is open
+    const dropdown = document.getElementById('assignActivityDropdown');
+    if (dropdown && dropdown.classList.contains('open')) {
+      renderAssignDropdown(document.getElementById('assignActivitySearch').value);
+    }
+  }
+
+  function renderAssignDropdown(query) {
+    const dropdown = document.getElementById('assignActivityDropdown');
+    const filtered = query
+      ? activities.filter(a =>
+          a.name.toLowerCase().includes(query.toLowerCase()) ||
+          a.type.toLowerCase().includes(query.toLowerCase()))
+      : activities;
+    if (!filtered.length) {
+      dropdown.innerHTML = '<div class="searchable-dropdown-empty">No se encontraron actividades</div>';
+      return;
+    }
+    const currentId = document.getElementById('assignActivity').value;
+    dropdown.innerHTML = filtered.map(a =>
+      `<div class="searchable-dropdown-item${String(a.id) === currentId ? ' selected-item' : ''}"
+            data-id="${a.id}"
+            data-label="${esc(a.name)} (${a.type})"
+            onmousedown="selectAssignActivity(${a.id}, this.dataset.label)">
+         ${esc(a.name)} <span class="badge badge-${a.type.toLowerCase()}">${a.type}</span>
+       </div>`
+    ).join('');
+  }
+
+  function filterAssignActivities() {
+    const query = document.getElementById('assignActivitySearch').value;
+    // Clear the hidden selection when the user types
+    document.getElementById('assignActivity').value = '';
+    renderAssignDropdown(query);
+    document.getElementById('assignActivityDropdown').classList.add('open');
+  }
+
+  function openAssignDropdown() {
+    if (_closeAssignTimeout) { clearTimeout(_closeAssignTimeout); _closeAssignTimeout = null; }
+    renderAssignDropdown(document.getElementById('assignActivitySearch').value);
+    document.getElementById('assignActivityDropdown').classList.add('open');
+  }
+
+  function scheduleCloseAssignDropdown() {
+    _closeAssignTimeout = setTimeout(() => {
+      document.getElementById('assignActivityDropdown').classList.remove('open');
+      _closeAssignTimeout = null;
+    }, 150);
+  }
+
+  function selectAssignActivity(id, label) {
+    if (_closeAssignTimeout) { clearTimeout(_closeAssignTimeout); _closeAssignTimeout = null; }
+    document.getElementById('assignActivity').value = id;
+    document.getElementById('assignActivitySearch').value = label;
+    document.getElementById('assignActivityDropdown').classList.remove('open');
+    renderAssignTable();
   }
 
   function changePoints(pId, aId, delta) {
