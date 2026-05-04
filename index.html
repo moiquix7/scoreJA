@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MANEJO DE PUNTOS - JA VINTO CENTRAL</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -690,10 +692,23 @@
 </div>
 
 <script>
+  // ========== FIREBASE CONFIG ==========
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT.firebaseapp.com",
+    databaseURL: "https://TU_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "TU_PROJECT",
+    storageBucket: "TU_PROJECT.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
   // ========== DATA ==========
-  let participants = JSON.parse(localStorage.getItem('ja_participants') || '[]');
-  let activities = JSON.parse(localStorage.getItem('ja_activities') || '[]');
-  let points = JSON.parse(localStorage.getItem('ja_points') || '{}');
+  let participants = [];
+  let activities = [];
+  let points = {};
 
   let selectedEmoji = '';
   let editSelectedEmoji = '';
@@ -715,9 +730,14 @@
   }
 
   function save() {
-    localStorage.setItem('ja_participants', JSON.stringify(participants));
-    localStorage.setItem('ja_activities', JSON.stringify(activities));
-    localStorage.setItem('ja_points', JSON.stringify(points));
+    db.ref('/').update({
+      ja_participants: participants,
+      ja_activities: activities,
+      ja_points: points
+    }).catch(err => {
+      console.error('Error guardando datos en Firebase:', err);
+      alert('⚠️ No se pudieron guardar los datos. Verifica tu conexión y la configuración de Firebase.');
+    });
   }
 
   // ========== NAVIGATION ==========
@@ -1193,8 +1213,25 @@
   }
 
   // ========== START ==========
-  init();
-  populateAssignSelect();
+  async function loadFromFirebase() {
+    try {
+      const [participantsSnap, activitiesSnap, pointsSnap] = await Promise.all([
+        db.ref('ja_participants').once('value'),
+        db.ref('ja_activities').once('value'),
+        db.ref('ja_points').once('value')
+      ]);
+      participants = participantsSnap.val() || [];
+      activities = activitiesSnap.val() || [];
+      points = pointsSnap.val() || {};
+    } catch (err) {
+      console.error('Error cargando datos desde Firebase:', err);
+      alert('⚠️ No se pudieron cargar los datos. Verifica tu conexión y la configuración de Firebase.');
+    }
+    init();
+    populateAssignSelect();
+  }
+
+  loadFromFirebase();
 </script>
 
 </body>
