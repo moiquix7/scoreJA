@@ -216,7 +216,7 @@
       letter-spacing: 1px;
     }
 
-    .badge-mision { background: rgba(99,102,241,0.2); color: var(--mision); }
+    .badge-mision { background: rgba(232, 96, 244, 0.2); color: var(--mision); }
     .badge-comunion { background: rgba(245,158,11,0.2); color: var(--comunion); }
     .badge-relacion { background: rgba(16,185,129,0.2); color: var(--relacion); }
 
@@ -585,6 +585,10 @@
         <label>Nombre de la Actividad</label>
         <input type="text" id="activityName" placeholder="Ej: Estudio Bíblico">
       </div>
+      <div class="form-group" stuyle="max-width:180px;">
+         <label for="activityPts">Pts.</label>
+         <input type="number" id="activityPts" placeholder="Pts" min="0" step="1" required oninput="this.value=this.value.replace(/[^0-9]/g,'');">
+      </div>
       <div class="form-group" style="max-width:180px;">
         <label>Tipo</label>
         <select id="activityType">
@@ -621,7 +625,7 @@
                  oninput="filterAssignActivities()"
                  onfocus="openAssignDropdown()"
                  onblur="scheduleCloseAssignDropdown()">
-          <div class="searchable-dropdown" id="assignActivityDropdown"></div>
+          <div class="searchable-dropdown" id="assignActivityDropdown">asdf</div>
           <input type="hidden" id="assignActivity" value="">
         </div>
       </div>
@@ -677,6 +681,10 @@
     <div class="form-group">
       <label>Nombre</label>
       <input type="text" id="editActivityName">
+    </div>
+    <div class="form-group">
+      <label>Pts</label>
+      <input type="number" id="editActivityPts" min="0" step="1" required oninput="this.value=this.value.replace(/[^0-9]/g,'');">
     </div>
     <div class="form-group">
       <label>Tipo</label>
@@ -887,8 +895,11 @@
   function addActivity() {
     const name = document.getElementById('activityName').value.trim();
     const type = document.getElementById('activityType').value;
+    const pts = parseInt(document.getElementById('activityPts').value, 10);
+
     if (!name) return alert('Ingresa un nombre para la actividad.');
-    activities.push({ id: uid(), name, type });
+    if (isNaN(pts) || pts < 0) return alert('Ingresa un valor válido en Pts.');
+    activities.push({ id: uid(), name, type, pts });
     save(); renderActivities();
     document.getElementById('activityName').value = '';
   }
@@ -905,6 +916,7 @@
     if (!a) return;
     document.getElementById('editActivityId').value = id;
     document.getElementById('editActivityName').value = a.name;
+    document.getElementById('editActivityPts').value = a.pts !== undefined ? a.pts : '';
     document.getElementById('editActivityType').value = a.type;
     openModal('modalEditActivity');
   }
@@ -912,11 +924,15 @@
   function saveEditActivity() {
     const id = parseInt(document.getElementById('editActivityId').value);
     const name = document.getElementById('editActivityName').value.trim();
+    const pts = parseInt(document.getElementById('editActivityPts').value, 10);
     const type = document.getElementById('editActivityType').value;
+
     if (!name) return alert('El nombre no puede estar vacío.');
+    if (isNaN(pts) || pts < 0) return alert('Ingresa un valor válido en Pts.');
+
     const a = activities.find(x => x.id === id);
     if (!a) return;
-    a.name = name; a.type = type;
+    a.name = name; a.type = type; a.pts = pts;
     save(); renderActivities(); closeModal('modalEditActivity');
   }
 
@@ -924,10 +940,11 @@
     const el = document.getElementById('activityList');
     if (!activities.length) { el.innerHTML = '<div class="empty-state">No hay actividades registradas.</div>'; return; }
     el.innerHTML = `<table>
-      <tr><th>#</th><th>Actividad</th><th>Tipo</th><th>Acciones</th></tr>
+      <tr><th>#</th><th>Actividad</th><th>Pts</th><th>Tipo</th><th>Acciones</th></tr>
       ${activities.map((a, i) => `<tr>
         <td>${i + 1}</td>
         <td>${esc(a.name)}</td>
+        <td style="text-align:center;">${a.pts !== undefined ? a.pts : ''}</td>
         <td><span class="badge badge-${a.type.toLowerCase()}">${a.type}</span></td>
         <td><div class="action-btns">
           <button class="btn btn-edit" onclick="editActivity(${a.id})">✏️</button>
@@ -974,7 +991,7 @@
             data-id="${a.id}"
             data-label="${esc(a.name)} (${a.type})"
             onmousedown="selectAssignActivity(${a.id}, this.dataset.label)">
-         ${esc(a.name)} <span class="badge badge-${a.type.toLowerCase()}">${a.type}</span>
+         ${esc(a.name)} - <span class="badge badge-${a.type.toLowerCase()}">${a.type}</span>
        </div>`
     ).join('');
   }
@@ -1076,7 +1093,7 @@
     wrap.innerHTML = `<table>
       <tr>
         <th>Participante</th>
-        <th class="th-${colorClass}" style="text-align:center;">${esc(act.name)} <span class="badge badge-${colorClass}">${act.type}</span></th>
+        <th class="th-${colorClass}" style="text-align:center;">${esc(act.name)} <span class="badge badge-${colorClass}">${act.type}</span> ${act.pts !== undefined ? esc(act.pts)+' Pts'  : ''}</th>
       </tr>
       ${participants.map(p => {
         const key = p.id + '-' + act.id;
@@ -1105,7 +1122,10 @@
       }).join('')}
     </table>`;
   }
-
+//TODO: permitir que los valores ingresados por teclado puedan ser reconocidos en la suma
+// se esta incrementando un 10 mas. corregir esta suma
+// pensar como restar. el monto. existente. 
+// agregar edicion de puntos.
   function savePoints() {
     const actId = document.getElementById('assignActivity').value;
     if (!actId) return alert('Selecciona una actividad.');
@@ -1124,7 +1144,11 @@
           setTimeout(() => input.classList.remove('invalid'), 400);
           hasError = true;
         }
-        points[key] = val;
+         // SUMAR (no reemplazar): nuevo valor + lo almacenado anteriormente
+      const prev = points[key] || 0;
+      points[key] = prev + val;
+      // Después de sumar, muestra el resultado en el input
+      input.value = points[key];
       }
     });
 
