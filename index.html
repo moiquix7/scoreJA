@@ -621,12 +621,14 @@
     <div class="activity-select-row">
       <div class="form-group" style="max-width:300px;">
         <label>Seleccionar Actividad</label>
-        <div class="searchable-select">
+        <div class="searchable-select" style="display:flex;gap:0.4rem;align-items:center;">
           <input type="text" id="assignActivitySearch" placeholder="Buscar actividad..." autocomplete="off"
                  oninput="filterAssignActivities()"
                  onfocus="openAssignDropdown()"
-                 onblur="scheduleCloseAssignDropdown()">
-          <div class="searchable-dropdown" id="assignActivityDropdown">asdf</div>
+                 onblur="scheduleCloseAssignDropdown()"
+                 style="flex:1;">
+          <button class="btn btn-danger" onclick="clearAssignActivity()" title="Limpiar selección" style="padding:0.5rem 0.7rem;font-size:1rem;border-radius:8px;flex-shrink:0;">✕</button>
+          <div class="searchable-dropdown" id="assignActivityDropdown"></div>
           <input type="hidden" id="assignActivity" value="">
         </div>
       </div>
@@ -1028,6 +1030,13 @@
     renderAssignTable();
   }
 
+  function clearAssignActivity() {
+    document.getElementById('assignActivity').value = '';
+    document.getElementById('assignActivitySearch').value = '';
+    document.getElementById('assignActivityDropdown').classList.remove('open');
+    renderAssignTable();
+  }
+
   function changePoints(pId, aId, delta) {
     const key = pId + '-' + aId;
     const input = document.getElementById('pv-' + key);
@@ -1201,9 +1210,36 @@
 
   function enterEditMode(pId, aId) {
     const key = pId + '-' + aId;
-    if (!(key in savedPoints)) return; // only allow editing if a value was saved
+    if (!(key in savedPoints)) return;
+
+    // Capture current input values for all participants before re-rendering
+    participants.forEach(p => {
+      const k = p.id + '-' + aId;
+      const input = document.getElementById('pv-' + k);
+      if (input && k !== key) {
+        let val = parseInt(input.value) || 0;
+        if (editModeKeys.has(k)) {
+          points[k] = val;
+        } else {
+          points[k] = (savedPoints[k] || 0) + val;
+        }
+      }
+    });
+
     editModeKeys.add(key);
     renderAssignTable();
+
+    // Restore non-editing participants' delta values in their inputs
+    participants.forEach(p => {
+      const k = p.id + '-' + aId;
+      if (k !== key && !editModeKeys.has(k)) {
+        const input = document.getElementById('pv-' + k);
+        if (input) {
+          const delta = (points[k] || 0) - (savedPoints[k] || 0);
+          input.value = Math.max(0, delta);
+        }
+      }
+    });
   }
 
   function renderSummary() {
