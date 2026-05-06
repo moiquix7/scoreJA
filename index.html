@@ -531,9 +531,137 @@
       .points-stepper .stepper-btn { width: 44px; height: 44px; font-size: 1.4rem; }
       .points-input-stepper { width: 64px; font-size: 1.2rem; }
     }
+
+    /* ========== LOGIN SCREEN ========== */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    #login-screen.hidden { display: none; }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .login-logo h1 {
+      font-size: 1.3rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--mision), var(--comunion), var(--relacion));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.3rem;
+    }
+
+    .login-logo p {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .login-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .login-form .form-group {
+      margin-bottom: 1rem;
+      min-width: unset;
+    }
+
+    .login-form .form-group label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+
+    .login-form input {
+      width: 100%;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .login-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+    }
+
+    /* Logout button in nav */
+    .btn-logout {
+      background: transparent;
+      border: 2px solid var(--border);
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .btn-logout:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    #app-root { display: none; }
+    #app-root.visible { display: block; }
   </style>
 </head>
 <body>
+
+<!-- ========== LOGIN SCREEN ========== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>🏆 JA Vinto Central</h1>
+      <p>Sistema de gestión de puntos por actividades</p>
+    </div>
+    <p class="login-title">🔐 Iniciar Sesión</p>
+    <form class="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label for="loginUser">Usuario</label>
+        <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="loginPass">Contraseña</label>
+        <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary login-btn">Entrar</button>
+      <p class="login-error" id="loginError"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<div id="app-root">
 
 <header>
   <h1>🏆 Manejo de Puntos - JA Vinto Central</h1>
@@ -545,6 +673,7 @@
   <button onclick="showSection('actividades', this)">📋 Actividades</button>
   <button onclick="showSection('asignar', this)">🎯 Asignar Puntos</button>
   <button onclick="showSection('ranking', this)">🏅 Ranking</button>
+  <button class="btn-logout" onclick="handleLogout()" title="Cerrar sesión">🚪 Salir</button>
 </nav>
 
 <!-- SECCIÓN 1: PARTICIPANTES -->
@@ -703,6 +832,8 @@
   </div>
 </div>
 
+</div><!-- /#app-root -->
+
 <script>
   // ========== FIREBASE CONFIG ==========
   const firebaseConfig = {
@@ -717,7 +848,103 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // ========== DATA ==========
+  // ========== AUTH ==========
+  const DEFAULT_USER = 'admin';
+  const DEFAULT_PASS = '1844iasd';
+  const SESSION_KEY = 'ja_session_user';
+
+  async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function randomSalt() {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function hashWithSalt(password, salt) {
+    return sha256(salt + password);
+  }
+
+  function isValidFirebaseKey(key) {
+    return !/[.#$\[\]/]/.test(key) && key.length > 0;
+  }
+
+  async function ensureDefaultUser() {
+    const snap = await db.ref('ja_users').once('value');
+    if (!snap.val()) {
+      const salt = randomSalt();
+      const hash = await hashWithSalt(DEFAULT_PASS, salt);
+      await db.ref('ja_users').child(DEFAULT_USER).set({ password: hash, salt });
+    }
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value;
+    const errorEl = document.getElementById('loginError');
+    errorEl.textContent = '';
+
+    if (!isValidFirebaseKey(username)) {
+      errorEl.textContent = '❌ El usuario contiene caracteres no permitidos.';
+      return;
+    }
+
+    try {
+      const snap = await db.ref('ja_users').child(username).once('value');
+      const userData = snap.val();
+      if (!userData) {
+        errorEl.textContent = '❌ Usuario o contraseña incorrectos.';
+        return;
+      }
+      const hash = await hashWithSalt(password, userData.salt || '');
+      if (hash !== userData.password) {
+        errorEl.textContent = '❌ Usuario o contraseña incorrectos.';
+        return;
+      }
+      sessionStorage.setItem(SESSION_KEY, username);
+      showApp();
+      loadFromFirebase();
+    } catch (err) {
+      console.error('Error en login:', err);
+      errorEl.textContent = '⚠️ Error al conectar. Verifica tu conexión.';
+    }
+  }
+
+  function handleLogout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('app-root').classList.remove('visible');
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+
+  function showApp() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app-root').classList.add('visible');
+  }
+
+  async function initAuth() {
+    await ensureDefaultUser();
+    const savedUser = sessionStorage.getItem(SESSION_KEY);
+    if (savedUser) {
+      const snap = await db.ref('ja_users').child(savedUser).once('value');
+      if (snap.val()) {
+        showApp();
+        loadFromFirebase();
+        return;
+      }
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  }
+
+
   let participants = [];
   let activities = [];
   let points = {};
@@ -1362,7 +1589,7 @@
     populateAssignSelect();
   }
 
-  loadFromFirebase();
+  initAuth();
 </script>
 
 </body>
