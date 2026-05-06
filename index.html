@@ -633,6 +633,7 @@
         </div>
       </div>
       <button class="btn btn-success" onclick="savePoints()" style="align-self:flex-end;">💾 Guardar Puntos</button>
+      <button class="btn btn-danger" onclick="clearAllPoints()" style="align-self:flex-end;" aria-label="Limpiar todos los puntos">🗑️ Limpiar Puntos</button>
     </div>
     <div style="overflow-x:auto;" id="assignTableWrap"></div>
   </div>
@@ -1206,6 +1207,23 @@
     renderSummary();
     renderRanking();
     alert('✅ Puntos guardados correctamente.');
+  }
+
+  function clearAllPoints() {
+    const actId = document.getElementById('assignActivity').value;
+    if (!actId) return alert('Selecciona una actividad.');
+    if (!confirm('¿Estás seguro de que deseas limpiar todos los puntos de esta actividad? Esta acción no se puede deshacer.')) return;
+
+    participants.forEach(p => {
+      const key = p.id + '-' + actId;
+      points[key] = 0;
+      savedPoints[key] = 0;
+    });
+    editModeKeys.clear();
+    save();
+    renderAssignTable();
+    renderSummary();
+    renderRanking();
   }
 
   function enterEditMode(pId, aId) {
