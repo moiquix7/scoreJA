@@ -1314,7 +1314,7 @@
         <div style="font-size:1.8rem;">${p.logoType === 'image' ? `<img src="${p.logo}" class="img-preview" style="width:42px;height:42px;">` : p.logo}</div>
         <div class="ranking-info">
           <div class="ranking-name">${esc(p.name)}</div>
-          <div class="ranking-bar-bg"><div class="ranking-bar" style="width:${pct}%"></div></div>
+          <div class="ranking-bar-bg"><div class="ranking-bar" style="width:${pct}%;background:${getBarColor(p.name)}"></div></div>
           <div class="ranking-details">
             <span><span class="color-dot dot-mision"></span> ${p.mision}</span>
             <span><span class="color-dot dot-comunion"></span> ${p.comunion}</span>
@@ -1327,6 +1327,14 @@
   }
 
   // ========== UTILS ==========
+  function getBarColor(name) {
+    const n = name.toLowerCase().trim();
+    if (n.includes('heroes de fe')) return '#ef4444';
+    if (n.includes('portadores de luz')) return '#f59e0b';
+    if (n.includes('leones de juda')) return '#22c55e';
+    return 'linear-gradient(90deg, var(--mision), var(--relacion))';
+  }
+
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   function logoHTML(p) {
     return p.logoType === 'image'
