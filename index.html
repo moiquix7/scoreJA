@@ -149,6 +149,7 @@
 
     .btn:hover { transform: scale(1.03); }
     .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; pointer-events: none; }
 
     .btn-primary { background: var(--mision); color: #fff; }
     .btn-danger { background: var(--danger); color: #fff; padding: 0.3rem 0.6rem; font-size: 0.75rem; }
@@ -717,6 +718,8 @@
   let participants = [];
   let activities = [];
   let points = {};
+  let savedPoints = {}; // snapshot of points last persisted to Firebase
+  let editModeKeys = new Set(); // keys currently in replace/edit mode
 
   let selectedEmoji = '';
   let editSelectedEmoji = '';
@@ -1027,11 +1030,22 @@
 
   function changePoints(pId, aId, delta) {
     const key = pId + '-' + aId;
-    let val = (points[key] || 0) + delta;
-    if (val < 0) val = 0;
-    points[key] = val;
     const input = document.getElementById('pv-' + key);
-    if (input) input.value = val;
+    if (!input) return;
+    if (editModeKeys.has(key)) {
+      // Edit mode: input shows total; adjust total directly
+      let total = (parseInt(input.value) || 0) + delta;
+      if (total < 0) total = 0;
+      points[key] = total;
+      input.value = total;
+    } else {
+      // Normal mode: input shows delta to add; adjust delta
+      let currentDelta = parseInt(input.value) || 0;
+      let newDelta = currentDelta + delta;
+      if (newDelta < 0) newDelta = 0;
+      points[key] = Math.max(0, (savedPoints[key] || 0) + newDelta);
+      input.value = newDelta;
+    }
   }
 
   function onPointsInput(pId, aId) {
@@ -1052,7 +1066,11 @@
       input.value = 0;
     }
 
-    points[key] = val;
+    if (editModeKeys.has(key)) {
+      points[key] = val; // edit mode: val is the new total
+    } else {
+      points[key] = (savedPoints[key] || 0) + val; // normal mode: val is the delta
+    }
   }
 
   function onPointsBlur(pId, aId) {
@@ -1062,7 +1080,11 @@
 
     if (isNaN(val) || val < 0) val = 0;
 
-    points[key] = val;
+    if (editModeKeys.has(key)) {
+      points[key] = val;
+    } else {
+      points[key] = (savedPoints[key] || 0) + val;
+    }
     input.value = val;
     input.classList.remove('invalid');
   }
@@ -1097,7 +1119,16 @@
       </tr>
       ${participants.map(p => {
         const key = p.id + '-' + act.id;
-        const val = points[key] || 0;
+        const isEditing = editModeKeys.has(key);
+        const hasSaved = key in savedPoints;
+        const savedVal = savedPoints[key] || 0;
+        // In edit mode show the saved value (to replace); in normal mode show 0 (delta to add)
+        const inputVal = isEditing ? savedVal : 0;
+        const editBtnDisabled = hasSaved ? '' : 'disabled';
+        const editBtnClass = isEditing ? 'btn-warning' : 'btn-edit';
+        const editBtnLabel = isEditing ? '✏️ Editando' : '✏️ Editar';
+        const stepLabel = isEditing ? 'reemplazar total' : `+${STEP} pts (sumar)`;
+        const savedLabel = hasSaved ? `<div class="step-label" style="color:var(--muted);">guardado: ${savedVal}</div>` : '';
         return `<tr>
           <td>${logoHTML(p)} ${esc(p.name)}</td>
           <td>
@@ -1107,25 +1138,26 @@
                 <input type="number"
                        class="points-input-stepper"
                        id="pv-${key}"
-                       value="${val}"
+                       value="${inputVal}"
                        min="0"
                        style="color:var(--${colorClass})"
                        oninput="onPointsInput(${p.id},${act.id})"
                        onblur="onPointsBlur(${p.id},${act.id})"
                        onkeydown="onPointsKeydown(event,${p.id},${act.id})">
-                <div class="step-label">±${STEP} pts</div>
+                <div class="step-label">${stepLabel}</div>
+                ${savedLabel}
               </div>
               <button class="stepper-btn plus" onclick="changePoints(${p.id},${act.id},${STEP})">+</button>
+            </div>
+            <div style="text-align:center;margin-top:0.4rem;">
+              <button class="btn ${editBtnClass}" style="font-size:0.75rem;padding:0.3rem 0.7rem;" onclick="enterEditMode(${p.id},${act.id})" ${editBtnDisabled}>${editBtnLabel}</button>
             </div>
           </td>
         </tr>`;
       }).join('')}
     </table>`;
   }
-//TODO: permitir que los valores ingresados por teclado puedan ser reconocidos en la suma
-// se esta incrementando un 10 mas. corregir esta suma
-// pensar como restar. el monto. existente. 
-// agregar edicion de puntos.
+
   function savePoints() {
     const actId = document.getElementById('assignActivity').value;
     if (!actId) return alert('Selecciona una actividad.');
@@ -1144,11 +1176,13 @@
           setTimeout(() => input.classList.remove('invalid'), 400);
           hasError = true;
         }
-         // SUMAR (no reemplazar): nuevo valor + lo almacenado anteriormente
-      const prev = points[key] || 0;
-      points[key] = prev + val;
-      // Después de sumar, muestra el resultado en el input
-      input.value = points[key];
+        if (editModeKeys.has(key)) {
+          // Edit mode: replace the stored value with the typed total
+          points[key] = val;
+        } else {
+          // Normal mode: add the typed delta to the previously saved value
+          points[key] = (savedPoints[key] || 0) + val;
+        }
       }
     });
 
@@ -1157,9 +1191,19 @@
     }
 
     save();
+    savedPoints = { ...points }; // update persisted snapshot
+    editModeKeys.clear(); // exit any edit mode after saving
+    renderAssignTable(); // refresh inputs back to delta=0 and update Editar states
     renderSummary();
     renderRanking();
     alert('✅ Puntos guardados correctamente.');
+  }
+
+  function enterEditMode(pId, aId) {
+    const key = pId + '-' + aId;
+    if (!(key in savedPoints)) return; // only allow editing if a value was saved
+    editModeKeys.add(key);
+    renderAssignTable();
   }
 
   function renderSummary() {
@@ -1247,6 +1291,7 @@
       participants = participantsSnap.val() || [];
       activities = activitiesSnap.val() || [];
       points = pointsSnap.val() || {};
+      savedPoints = { ...points }; // snapshot of persisted values
     } catch (err) {
       console.error('Error cargando datos desde Firebase:', err);
       alert('⚠️ No se pudieron cargar los datos. Verifica tu conexión y la configuración de Firebase.');
