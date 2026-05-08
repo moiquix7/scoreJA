@@ -670,6 +670,7 @@
 
 <nav>
   <button class="active" onclick="showSection('participantes', this)">👥 Participantes</button>
+  <button onclick="showSection('secretaria', this)">📝 Secretaría</button>
   <button onclick="showSection('actividades', this)">📋 Actividades</button>
   <button onclick="showSection('asignar', this)">🎯 Asignar Puntos</button>
   <button onclick="showSection('ranking', this)">🏅 Ranking</button>
@@ -707,7 +708,33 @@
   </div>
 </div>
 
-<!-- SECCIÓN 2: ACTIVIDADES -->
+<!-- SECCIÓN 2: SECRETARÍA -->
+<div class="section" id="sec-secretaria">
+  <div class="card">
+    <h2>📝 Registrar Miembro</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="memberNombre" placeholder="Ej: Juan">
+      </div>
+      <div class="form-group">
+        <label>Apellido</label>
+        <input type="text" id="memberApellido" placeholder="Ej: Pérez">
+      </div>
+      <div class="form-group">
+        <label>GP</label>
+        <select id="memberGp"></select>
+      </div>
+      <button class="btn btn-primary" onclick="addMember()" style="align-self:flex-end;">+ Agregar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📃 Miembros Registrados</h2>
+    <div id="memberList"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN 3: ACTIVIDADES -->
 <div class="section" id="sec-actividades">
   <div class="card">
     <h2>📋 Registrar Actividad</h2>
@@ -737,7 +764,7 @@
   </div>
 </div>
 
-<!-- SECCIÓN 3: ASIGNAR PUNTOS -->
+<!-- SECCIÓN 4: ASIGNAR PUNTOS -->
 <div class="section" id="sec-asignar">
   <div class="card">
     <div class="assign-header">
@@ -773,7 +800,7 @@
   </div>
 </div>
 
-<!-- SECCIÓN 4: RANKING -->
+<!-- SECCIÓN 5: RANKING -->
 <div class="section" id="sec-ranking">
   <div class="card">
     <h2>🏅 Ranking General</h2>
@@ -781,7 +808,7 @@
   </div>
 </div>
 
-<!-- SECCIÓN 5: VER ACTIVIDADES -->
+<!-- SECCIÓN 6: VER ACTIVIDADES -->
 <div class="section" id="sec-veractividades">
   <div class="card">
     <div class="assign-header">
@@ -815,6 +842,28 @@
     </div>
     <input type="hidden" id="editParticipantId">
     <button class="btn btn-primary" onclick="saveEditParticipant()">💾 Guardar Cambios</button>
+  </div>
+</div>
+
+<!-- MODAL EDITAR MIEMBRO -->
+<div class="modal-overlay" id="modalEditMember">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('modalEditMember')">&times;</button>
+    <h3>✏️ Editar Miembro</h3>
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="editMemberNombre">
+    </div>
+    <div class="form-group">
+      <label>Apellido</label>
+      <input type="text" id="editMemberApellido">
+    </div>
+    <div class="form-group">
+      <label>GP</label>
+      <select id="editMemberGp"></select>
+    </div>
+    <input type="hidden" id="editMemberId">
+    <button class="btn btn-primary" onclick="saveEditMember()">💾 Guardar Cambios</button>
   </div>
 </div>
 
@@ -960,6 +1009,7 @@
 
 
   let participants = [];
+  let members = [];
   let activities = [];
   let points = {};
   let savedPoints = {}; // snapshot of points last persisted to Firebase
@@ -978,15 +1028,18 @@
   function init() {
     renderEmojiPicker();
     renderParticipants();
+    renderMembers();
     renderActivities();
     renderAssignTable();
     renderSummary();
     renderRanking();
+    populateMemberGPSelect();
   }
 
   function save() {
     db.ref('/').update({
       ja_participants: participants,
+      ja_members: members,
       ja_activities: activities,
       ja_points: points
     }).catch(err => {
@@ -1004,6 +1057,7 @@
     if (name === 'asignar') { populateAssignSelect(); renderAssignTable(); renderSummary(); }
     if (name === 'ranking') renderRanking();
     if (name === 'veractividades') renderVerActividades();
+    if (name === 'secretaria') { populateMemberGPSelect(); renderMembers(); }
   }
 
   // ========== MODALS ==========
@@ -1055,7 +1109,7 @@
     if (type === 'emoji') {
       if (!selectedEmoji) return alert('Selecciona un emoji.');
       participants.push({ id: uid(), name, logo: selectedEmoji, logoType: 'emoji' });
-      save(); renderParticipants();
+      save(); renderParticipants(); populateMemberGPSelect(); renderMembers();
       document.getElementById('participantName').value = '';
       selectedEmoji = ''; renderEmojiPicker();
     } else {
@@ -1064,7 +1118,7 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         participants.push({ id: uid(), name, logo: e.target.result, logoType: 'image' });
-        save(); renderParticipants();
+        save(); renderParticipants(); populateMemberGPSelect(); renderMembers();
         document.getElementById('participantName').value = '';
         document.getElementById('participantImage').value = '';
       };
@@ -1076,7 +1130,7 @@
     if (!confirm('¿Eliminar este participante y todos sus puntos?')) return;
     participants = participants.filter(p => p.id !== id);
     Object.keys(points).forEach(k => { if (k.startsWith(id + '-')) delete points[k]; });
-    save(); renderParticipants();
+    save(); renderParticipants(); populateMemberGPSelect(); renderMembers();
   }
 
   function editParticipant(id) {
@@ -1106,18 +1160,18 @@
     const type = document.querySelector('input[name="editLogoType"]:checked').value;
     if (type === 'emoji') {
       if (editSelectedEmoji) { p.logo = editSelectedEmoji; p.logoType = 'emoji'; }
-      save(); renderParticipants(); closeModal('modalEditParticipant');
+      save(); renderParticipants(); populateMemberGPSelect(); renderMembers(); closeModal('modalEditParticipant');
     } else {
       const file = document.getElementById('editParticipantImage').files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
           p.logo = e.target.result; p.logoType = 'image';
-          save(); renderParticipants(); closeModal('modalEditParticipant');
+          save(); renderParticipants(); populateMemberGPSelect(); renderMembers(); closeModal('modalEditParticipant');
         };
         reader.readAsDataURL(file);
       } else {
-        save(); renderParticipants(); closeModal('modalEditParticipant');
+        save(); renderParticipants(); populateMemberGPSelect(); renderMembers(); closeModal('modalEditParticipant');
       }
     }
   }
@@ -1136,6 +1190,95 @@
           <button class="btn btn-danger" onclick="removeParticipant(${p.id})">✕</button>
         </div></td>
       </tr>`).join('')}
+    </table>`;
+  }
+
+  // ========== MEMBERS ==========
+  function populateMemberGPSelect() {
+    const options = participants.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    const defaultOption = '<option value="">Seleccionar GP</option>';
+    ['memberGp', 'editMemberGp'].forEach(id => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      const currentValue = select.value;
+      select.innerHTML = defaultOption + options;
+      if (participants.some(p => String(p.id) === String(currentValue))) {
+        select.value = String(currentValue);
+      }
+    });
+  }
+
+  function addMember() {
+    const nombre = document.getElementById('memberNombre').value.trim();
+    const apellido = document.getElementById('memberApellido').value.trim();
+    const gpId = document.getElementById('memberGp').value;
+    if (!nombre || !apellido || !gpId) return alert('Completa nombre, apellido y GP.');
+    const gp = participants.find(p => String(p.id) === gpId);
+    if (!gp) return alert('Selecciona un GP válido.');
+    members.push({ id: uid(), nombre, apellido, gpId: gp.id, gpName: gp.name });
+    save();
+    renderMembers();
+    document.getElementById('memberNombre').value = '';
+    document.getElementById('memberApellido').value = '';
+    document.getElementById('memberGp').value = '';
+  }
+
+  function removeMember(id) {
+    if (!confirm('¿Eliminar este miembro?')) return;
+    members = members.filter(m => m.id !== id);
+    save();
+    renderMembers();
+  }
+
+  function editMember(id) {
+    const m = members.find(x => x.id === id);
+    if (!m) return;
+    populateMemberGPSelect();
+    document.getElementById('editMemberId').value = id;
+    document.getElementById('editMemberNombre').value = m.nombre || '';
+    document.getElementById('editMemberApellido').value = m.apellido || '';
+    document.getElementById('editMemberGp').value = String(m.gpId || '');
+    openModal('modalEditMember');
+  }
+
+  function saveEditMember() {
+    const id = parseInt(document.getElementById('editMemberId').value, 10);
+    const nombre = document.getElementById('editMemberNombre').value.trim();
+    const apellido = document.getElementById('editMemberApellido').value.trim();
+    const gpId = document.getElementById('editMemberGp').value;
+    if (!nombre || !apellido || !gpId) return alert('Completa nombre, apellido y GP.');
+    const gp = participants.find(p => String(p.id) === gpId);
+    if (!gp) return alert('Selecciona un GP válido.');
+    const m = members.find(x => x.id === id);
+    if (!m) return;
+    m.nombre = nombre;
+    m.apellido = apellido;
+    m.gpId = gp.id;
+    m.gpName = gp.name;
+    save();
+    renderMembers();
+    closeModal('modalEditMember');
+  }
+
+  function renderMembers() {
+    const el = document.getElementById('memberList');
+    if (!members.length) { el.innerHTML = '<div class="empty-state">No hay miembros registrados.</div>'; return; }
+    el.innerHTML = `<table>
+      <tr><th>#</th><th>Nombre</th><th>Apellido</th><th>GP</th><th>Acciones</th></tr>
+      ${members.map((m, i) => {
+        const gp = participants.find(p => p.id === m.gpId);
+        const gpName = gp ? gp.name : (m.gpName || 'GP no disponible');
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${esc(m.nombre || '')}</td>
+          <td>${esc(m.apellido || '')}</td>
+          <td>${esc(gpName)}</td>
+          <td><div class="action-btns">
+            <button class="btn btn-edit" onclick="editMember(${m.id})">✏️</button>
+            <button class="btn btn-danger" onclick="removeMember(${m.id})">✕</button>
+          </div></td>
+        </tr>`;
+      }).join('')}
     </table>`;
   }
 
@@ -1664,12 +1807,14 @@
   // ========== START ==========
   async function loadFromFirebase() {
     try {
-      const [participantsSnap, activitiesSnap, pointsSnap] = await Promise.all([
+      const [participantsSnap, membersSnap, activitiesSnap, pointsSnap] = await Promise.all([
         db.ref('ja_participants').once('value'),
+        db.ref('ja_members').once('value'),
         db.ref('ja_activities').once('value'),
         db.ref('ja_points').once('value')
       ]);
       participants = participantsSnap.val() || [];
+      members = membersSnap.val() || [];
       activities = activitiesSnap.val() || [];
       points = pointsSnap.val() || {};
       savedPoints = { ...points }; // snapshot of persisted values
