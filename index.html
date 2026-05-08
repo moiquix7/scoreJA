@@ -633,6 +633,69 @@
 
     #app-root { display: none; }
     #app-root.visible { display: block; }
+
+    /* ===== ASISTENCIA: TOGGLE SWITCH ===== */
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--danger);
+      border-radius: 26px;
+      transition: 0.3s;
+    }
+    .toggle-slider:before {
+      content: "";
+      position: absolute;
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--relacion);
+    }
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    /* ===== ASISTENCIA: SUMMARY CARDS ===== */
+    .attendance-summary {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .summary-card {
+      flex: 1;
+      min-width: 120px;
+      background: var(--card2);
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .summary-card .summary-number {
+      font-size: 2rem;
+      font-weight: 900;
+    }
+    .summary-card .summary-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
@@ -675,6 +738,7 @@
   <button onclick="showSection('asignar', this)">🎯 Asignar Puntos</button>
   <button onclick="showSection('ranking', this)">🏅 Ranking</button>
   <button onclick="showSection('veractividades', this)">📊 Ver Actividades</button>
+  <button onclick="showSection('asistencia', this)">📋 Asistencia</button>
   <button class="btn-logout" onclick="handleLogout()" title="Cerrar sesión">🚪 Salir</button>
 </nav>
 
@@ -816,6 +880,40 @@
       <button class="btn btn-primary" onclick="printActivitiesTable()">🖨️ Imprimir PDF</button>
     </div>
     <div style="overflow-x:auto; margin-top:1rem;" id="verActividadesTableWrap"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN 7: CONTROL DE ASISTENCIA -->
+<div class="section" id="sec-asistencia">
+  <div class="card">
+    <h2>📋 Control de Asistencia</h2>
+    <div class="form-row" style="gap:1rem; margin-bottom:1rem;">
+      <div class="form-group" style="min-width:160px;">
+        <label>Fecha</label>
+        <input type="date" id="attendanceDate" onchange="loadAttendance(this.value)">
+      </div>
+      <div class="form-group" style="min-width:180px;">
+        <label for="attendanceGPFilter">Filtrar por GP</label>
+        <select id="attendanceGPFilter" onchange="filterAttendanceByGP()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+    </div>
+    <div class="attendance-summary">
+      <div class="summary-card">
+        <div class="summary-number" id="att-total">0</div>
+        <div class="summary-label">Total Miembros</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-number" id="att-present" style="color:var(--relacion);">0</div>
+        <div class="summary-label">Presentes</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-number" id="att-absent" style="color:var(--danger);">0</div>
+        <div class="summary-label">Ausentes</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;" id="attendanceTableWrap"></div>
   </div>
 </div>
 
@@ -1058,6 +1156,7 @@
     if (name === 'ranking') renderRanking();
     if (name === 'veractividades') renderVerActividades();
     if (name === 'secretaria') { populateMemberGPSelect(); renderMembers(); }
+    if (name === 'asistencia') renderAsistencia();
   }
 
   // ========== MODALS ==========
@@ -1786,6 +1885,103 @@
     });
 
     doc.save('puntos_ja_vinto_central.pdf');
+  }
+
+  // ========== ASISTENCIA ==========
+  let attendanceData = {}; // { memberId: true/false }
+  let attendanceCurrentDate = '';
+
+  function renderAsistencia() {
+    // Set default date to today if not set
+    const dateInput = document.getElementById('attendanceDate');
+    if (!dateInput.value) {
+      dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+    attendanceCurrentDate = dateInput.value;
+
+    // Populate GP filter
+    const gpFilter = document.getElementById('attendanceGPFilter');
+    const prevVal = gpFilter.value;
+    gpFilter.innerHTML = '<option value="">Todos</option>' +
+      participants.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    if (prevVal) gpFilter.value = prevVal;
+
+    loadAttendance(attendanceCurrentDate);
+  }
+
+  function loadAttendance(date) {
+    if (!date) return;
+    attendanceCurrentDate = date;
+    db.ref('ja_attendance/' + date).once('value').then(snap => {
+      attendanceData = snap.val() || {};
+      filterAttendanceByGP();
+    });
+  }
+
+  function filterAttendanceByGP() {
+    const gpId = document.getElementById('attendanceGPFilter').value;
+    const filtered = gpId
+      ? members.filter(m => String(m.gpId) === String(gpId))
+      : members.slice();
+
+    const wrap = document.getElementById('attendanceTableWrap');
+    if (filtered.length === 0) {
+      wrap.innerHTML = '<p style="color:var(--muted);text-align:center;padding:1rem;">No hay miembros registrados.</p>';
+      updateAttendanceSummary(filtered);
+      return;
+    }
+
+    wrap.innerHTML = `<table>
+      <tr><th>Miembro</th><th>GP</th><th>Asistencia</th><th>Estado</th></tr>
+      ${filtered.map(m => {
+        const gp = participants.find(p => p.id === m.gpId);
+        const gpName = gp ? gp.name : (m.gpName || 'Sin GP');
+        const present = !!attendanceData[m.id];
+        return `<tr id="att-row-${m.id}">
+          <td>${esc((m.nombre || '') + ' ' + (m.apellido || ''))}</td>
+          <td>${esc(gpName)}</td>
+          <td>
+            <label class="toggle-switch">
+              <input type="checkbox" aria-label="Marcar asistencia de ${esc((m.nombre || '') + ' ' + (m.apellido || ''))}" ${present ? 'checked' : ''} onchange="toggleAttendance(${m.id}, this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </td>
+          <td id="att-status-${m.id}" style="font-weight:700;color:${present ? 'var(--relacion)' : 'var(--danger)'};">
+            ${present ? 'Presente' : 'Ausente'}
+          </td>
+        </tr>`;
+      }).join('')}
+    </table>`;
+
+    updateAttendanceSummary(filtered);
+  }
+
+  function toggleAttendance(memberId, isPresent) {
+    attendanceData[memberId] = isPresent;
+    const statusEl = document.getElementById('att-status-' + memberId);
+    if (statusEl) {
+      statusEl.textContent = isPresent ? 'Presente' : 'Ausente';
+      statusEl.style.color = isPresent ? 'var(--relacion)' : 'var(--danger)';
+    }
+    // Save to Firebase
+    db.ref('ja_attendance/' + attendanceCurrentDate + '/' + memberId).set(isPresent)
+      .catch(err => console.error('Error guardando asistencia:', err));
+
+    // Update summary
+    const gpId = document.getElementById('attendanceGPFilter').value;
+    const filtered = gpId
+      ? members.filter(m => String(m.gpId) === String(gpId))
+      : members.slice();
+    updateAttendanceSummary(filtered);
+  }
+
+  function updateAttendanceSummary(filteredMembers) {
+    const total = filteredMembers.length;
+    const present = filteredMembers.filter(m => !!attendanceData[m.id]).length;
+    const absent = total - present;
+    document.getElementById('att-total').textContent = total;
+    document.getElementById('att-present').textContent = present;
+    document.getElementById('att-absent').textContent = absent;
   }
 
   // ========== UTILS ==========
