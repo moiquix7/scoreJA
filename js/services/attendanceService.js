@@ -22,6 +22,11 @@ function getAttendanceNode(date, type) {
   return 'ja_attendance/' + date + '/' + type;
 }
 
+function isLegacyAttendanceData(dateData) {
+  return dateData && typeof dateData === 'object'
+    && Object.values(dateData).some(v => typeof v === 'boolean');
+}
+
 function setAttendanceTypeIfNeeded(date) {
   const typeSelect = document.getElementById('attendanceType');
   if (!typeSelect || typeSelect.value) return Promise.resolve(typeSelect ? typeSelect.value : '');
@@ -29,8 +34,7 @@ function setAttendanceTypeIfNeeded(date) {
   return db.ref('ja_attendance/' + date).once('value').then(snap => {
     const dateData = snap.val() || {};
     let resolvedType = '';
-    const hasLegacyMembers = dateData && typeof dateData === 'object'
-      && Object.values(dateData).some(v => typeof v === 'boolean');
+    const hasLegacyMembers = isLegacyAttendanceData(dateData);
 
     if (hasLegacyMembers) {
       resolvedType = 'JA';
@@ -68,8 +72,7 @@ function loadAttendance(date) {
     if (!Object.keys(attendanceData).length) {
       db.ref('ja_attendance/' + date).once('value').then(dateSnap => {
         const legacy = dateSnap.val();
-        const hasLegacyMembers = legacy && typeof legacy === 'object'
-          && Object.values(legacy).some(v => typeof v === 'boolean');
+        const hasLegacyMembers = isLegacyAttendanceData(legacy);
         if (attendanceCurrentType === 'JA' && hasLegacyMembers) {
           attendanceData = legacy;
         }
@@ -132,7 +135,7 @@ function loadAttendanceHistory() {
       const dateData = data[date];
       if (!dateData || typeof dateData !== 'object') return;
 
-      const isLegacy = Object.values(dateData).some(v => typeof v === 'boolean');
+      const isLegacy = isLegacyAttendanceData(dateData);
       if (isLegacy) {
         const membersData = dateData;
         entries.push({
@@ -162,9 +165,9 @@ function loadAttendanceHistory() {
       });
     });
 
-    const uniqueByKey = {};
-    entries.forEach(entry => { uniqueByKey[entry.key] = entry; });
-    const uniqueEntries = Object.values(uniqueByKey);
+    const entriesByKey = {};
+    entries.forEach(entry => { entriesByKey[entry.key] = entry; });
+    const uniqueEntries = Object.values(entriesByKey);
 
     uniqueEntries.sort((a, b) => {
       if (a.date === b.date) return a.label.localeCompare(b.label, 'es');

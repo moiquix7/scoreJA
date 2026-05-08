@@ -122,6 +122,6 @@ function printMembersReportPDF() {
     alternateRowStyles: { fillColor: [241, 245, 249] }
   });
 
-  const safeGroup = groupLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const safeGroup = sanitizeFilename(groupLabel);
   doc.save('reporte_miembros_' + safeGroup + '.pdf');
 }

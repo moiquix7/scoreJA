@@ -171,5 +171,5 @@ function printAttendanceByGroupPDF() {
   doc.setFontSize(11);
   doc.text(`Total general: Presentes ${totalPresent} | Ausentes ${totalAbsent} | Total ${totalPresent + totalAbsent}`, 14, y);
 
-  doc.save(`asistencia_${date}_${type}.pdf`);
+  doc.save(`asistencia_${sanitizeFilename(date)}_${sanitizeFilename(type)}.pdf`);
 }
