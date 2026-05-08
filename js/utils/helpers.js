@@ -17,3 +17,7 @@ function getBarColor(name) {
   if (n.includes('leones de juda')) return '#22c55e';
   return 'linear-gradient(90deg, var(--mision), var(--relacion))';
 }
+
+function sanitizeFilename(text) {
+  return String(text || 'archivo').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
