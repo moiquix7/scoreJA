@@ -1,4 +1,14 @@
 // ========== ATTENDANCE UI ==========
+function normalizeAttendanceSearchText(value) {
+  return String(value || '').toLowerCase().trim();
+}
+
+function attendanceMemberMatchesName(member, nameFilter) {
+  if (!nameFilter) return true;
+  const fullName = `${member.nombre || ''} ${member.apellido || ''}`.trim().toLowerCase();
+  return fullName.includes(nameFilter);
+}
+
 function renderAsistencia() {
   // Set default date to today if not set
   const dateInput = document.getElementById('attendanceDate');
@@ -21,11 +31,24 @@ function renderAsistencia() {
   loadAttendance(attendanceCurrentDate);
 }
 
-function filterAttendanceByGP() {
-  const gpId = document.getElementById('attendanceGPFilter').value;
-  const filtered = gpId
+function getFilteredAttendanceMembers() {
+  const gpFilter = document.getElementById('attendanceGPFilter');
+  const gpId = gpFilter ? gpFilter.value : '';
+  const hasGpFilter = !!gpId;
+  const nameInput = document.getElementById('attendanceNameFilter');
+  const nameFilter = normalizeAttendanceSearchText(nameInput ? nameInput.value : '');
+  const gpFiltered = gpId
     ? members.filter(m => String(m.gpId) === String(gpId))
     : members.slice();
+  return {
+    filteredMembers: gpFiltered.filter(m => attendanceMemberMatchesName(m, nameFilter)),
+    hasNameFilter: !!nameFilter,
+    hasGpFilter
+  };
+}
+
+function applyAttendanceFilters() {
+  const { filteredMembers, hasNameFilter, hasGpFilter } = getFilteredAttendanceMembers();
 
   const wrap = document.getElementById('attendanceTableWrap');
   if (!attendanceCurrentType) {
@@ -34,15 +57,19 @@ function filterAttendanceByGP() {
     return;
   }
 
-  if (filtered.length === 0) {
-    wrap.innerHTML = '<p style="color:var(--muted);text-align:center;padding:1rem;">No hay miembros registrados.</p>';
-    updateAttendanceSummary(filtered);
+  if (filteredMembers.length === 0) {
+    wrap.innerHTML = `<p style="color:var(--muted);text-align:center;padding:1rem;">${
+      hasNameFilter || hasGpFilter
+        ? 'No hay miembros que coincidan con los filtros seleccionados.'
+        : 'No hay miembros registrados.'
+    }</p>`;
+    updateAttendanceSummary(filteredMembers);
     return;
   }
 
   wrap.innerHTML = `<table>
     <tr><th>Miembro</th><th>GP</th><th>Asistencia</th><th>Estado</th></tr>
-    ${filtered.map(m => {
+    ${filteredMembers.map(m => {
       const gp = participants.find(p => p.id === m.gpId);
       const gpName = gp ? gp.name : (m.gpName || 'Sin GP');
       const present = !!attendanceData[m.id];
@@ -62,7 +89,15 @@ function filterAttendanceByGP() {
     }).join('')}
   </table>`;
 
-  updateAttendanceSummary(filtered);
+  updateAttendanceSummary(filteredMembers);
+}
+
+function filterAttendanceByGP() {
+  applyAttendanceFilters();
+}
+
+function filterAttendanceByName() {
+  applyAttendanceFilters();
 }
 
 function updateAttendanceSummary(filteredMembers) {
