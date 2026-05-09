@@ -27,17 +27,23 @@ function paginateMembers(items, currentPage) {
   };
 }
 
+function getSafePageHandler(pageChangeHandler) {
+  const allowedHandlers = ['changeMemberListPage', 'changeMemberReportPage'];
+  return allowedHandlers.includes(pageChangeHandler) ? pageChangeHandler : 'changeMemberListPage';
+}
+
 function buildMembersPaginationHTML(currentPage, totalPages, pageChangeHandler) {
   if (totalPages <= 1) return '';
+  const safeHandler = getSafePageHandler(pageChangeHandler);
   const pages = Array.from({ length: totalPages }, (_, i) => {
     const page = i + 1;
     const activeClass = page === currentPage ? ' active' : '';
-    return `<button class="pagination-btn${activeClass}" onclick="${pageChangeHandler}(${page})">${page}</button>`;
+    return `<button class="pagination-btn${activeClass}" onclick="${safeHandler}(${page})">${page}</button>`;
   }).join('');
   return `<div class="table-pagination">
-    <button class="pagination-btn" onclick="${pageChangeHandler}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
+    <button class="pagination-btn" onclick="${safeHandler}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
     <div class="pagination-pages">${pages}</div>
-    <button class="pagination-btn" onclick="${pageChangeHandler}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+    <button class="pagination-btn" onclick="${safeHandler}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente</button>
   </div>`;
 }
 
