@@ -108,7 +108,7 @@ function toggleAttendance(memberId, isPresent) {
     .catch(err => console.error('Error guardando asistencia:', err));
 
   // Update summary
-  updateAttendanceSummary(getFilteredAttendanceMembers());
+  updateAttendanceSummary(getFilteredAttendanceMembers().filteredMembers);
 }
 
 function changeAttendanceEventType() {
