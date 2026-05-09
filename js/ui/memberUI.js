@@ -27,24 +27,34 @@ function paginateMembers(items, currentPage) {
   };
 }
 
-function getSafePageHandler(pageChangeHandler) {
-  const allowedHandlers = ['changeMemberListPage', 'changeMemberReportPage'];
-  return allowedHandlers.includes(pageChangeHandler) ? pageChangeHandler : 'changeMemberListPage';
-}
-
-function buildMembersPaginationHTML(currentPage, totalPages, pageChangeHandler) {
+function buildMembersPaginationHTML(currentPage, totalPages, paginationTarget) {
   if (totalPages <= 1) return '';
-  const safeHandler = getSafePageHandler(pageChangeHandler);
+  const safeTarget = paginationTarget === 'report' ? 'report' : 'list';
   const pages = Array.from({ length: totalPages }, (_, i) => {
     const page = i + 1;
     const activeClass = page === currentPage ? ' active' : '';
-    return `<button class="pagination-btn${activeClass}" onclick="${safeHandler}(${page})">${page}</button>`;
+    return `<button class="pagination-btn${activeClass}" data-pagination-target="${safeTarget}" data-page="${page}">${page}</button>`;
   }).join('');
   return `<div class="table-pagination">
-    <button class="pagination-btn" onclick="${safeHandler}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
+    <button class="pagination-btn" data-pagination-target="${safeTarget}" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
     <div class="pagination-pages">${pages}</div>
-    <button class="pagination-btn" onclick="${safeHandler}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+    <button class="pagination-btn" data-pagination-target="${safeTarget}" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente</button>
   </div>`;
+}
+
+function bindMembersPagination(container) {
+  if (!container) return;
+  container.querySelectorAll('.pagination-btn[data-pagination-target][data-page]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const page = parseInt(btn.dataset.page, 10);
+      if (!Number.isInteger(page) || page < 1) return;
+      if (btn.dataset.paginationTarget === 'report') {
+        changeMemberReportPage(page);
+      } else {
+        changeMemberListPage(page);
+      }
+    });
+  });
 }
 
 function populateMemberGPSelect() {
@@ -101,7 +111,8 @@ function renderMembers() {
       </tr>`;
     }).join('')}
   </table>
-  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'changeMemberListPage')}`;
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'list')}`;
+  bindMembersPagination(el);
   renderMemberReportTable();
 }
 
@@ -178,7 +189,8 @@ function renderMemberReportTable() {
       </tr>`;
     }).join('')}
   </table>
-  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'changeMemberReportPage')}`;
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'report')}`;
+  bindMembersPagination(wrap);
 }
 
 function changeMemberReportPage(page) {
