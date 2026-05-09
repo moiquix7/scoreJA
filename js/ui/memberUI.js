@@ -1,4 +1,46 @@
 // ========== MEMBER UI ==========
+const MEMBERS_PAGE_SIZE = 10;
+let memberListNameFilter = '';
+let memberListCurrentPage = 1;
+let memberReportNameFilter = '';
+let memberReportCurrentPage = 1;
+
+function normalizeMemberSearch(value) {
+  return String(value || '').toLowerCase().trim();
+}
+
+function memberMatchesName(m, nameFilter) {
+  if (!nameFilter) return true;
+  const fullName = `${m.nombre || ''} ${m.apellido || ''}`.toLowerCase();
+  return fullName.includes(nameFilter);
+}
+
+function paginateMembers(items, currentPage) {
+  const totalPages = Math.max(1, Math.ceil(items.length / MEMBERS_PAGE_SIZE));
+  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+  const start = (safePage - 1) * MEMBERS_PAGE_SIZE;
+  return {
+    safePage,
+    totalPages,
+    pageItems: items.slice(start, start + MEMBERS_PAGE_SIZE),
+    startIndex: start
+  };
+}
+
+function buildMembersPaginationHTML(currentPage, totalPages, pageChangeHandler) {
+  if (totalPages <= 1) return '';
+  const pages = Array.from({ length: totalPages }, (_, i) => {
+    const page = i + 1;
+    const activeClass = page === currentPage ? ' active' : '';
+    return `<button class="pagination-btn${activeClass}" onclick="${pageChangeHandler}(${page})">${page}</button>`;
+  }).join('');
+  return `<div class="table-pagination">
+    <button class="pagination-btn" onclick="${pageChangeHandler}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
+    <div class="pagination-pages">${pages}</div>
+    <button class="pagination-btn" onclick="${pageChangeHandler}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente</button>
+  </div>`;
+}
+
 function populateMemberGPSelect() {
   const options = participants.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
   const defaultOption = '<option value="">Seleccionar GP</option>';
@@ -16,18 +58,33 @@ function populateMemberGPSelect() {
 
 function renderMembers() {
   const el = document.getElementById('memberList');
+  const nameInput = document.getElementById('memberNameFilter');
+  if (nameInput) {
+    memberListNameFilter = normalizeMemberSearch(nameInput.value);
+  }
   if (!members.length) {
     el.innerHTML = '<div class="empty-state">No hay miembros registrados.</div>';
     renderMemberReportTable();
     return;
   }
+
+  const filtered = members.filter(m => memberMatchesName(m, memberListNameFilter));
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state">No hay miembros para la búsqueda ingresada.</div>';
+    renderMemberReportTable();
+    return;
+  }
+
+  const pagination = paginateMembers(filtered, memberListCurrentPage);
+  memberListCurrentPage = pagination.safePage;
+
   el.innerHTML = `<table>
     <tr><th>#</th><th>Nombre</th><th>Apellido</th><th>GP</th><th>Acciones</th></tr>
-    ${members.map((m, i) => {
+    ${pagination.pageItems.map((m, i) => {
       const gp = participants.find(p => p.id === m.gpId);
       const gpName = gp ? gp.name : (m.gpName || 'GP no disponible');
       return `<tr>
-        <td>${i + 1}</td>
+        <td>${pagination.startIndex + i + 1}</td>
         <td>${esc(m.nombre || '')}</td>
         <td>${esc(m.apellido || '')}</td>
         <td>${esc(gpName)}</td>
@@ -37,8 +94,21 @@ function renderMembers() {
         </div></td>
       </tr>`;
     }).join('')}
-  </table>`;
+  </table>
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'changeMemberListPage')}`;
   renderMemberReportTable();
+}
+
+function filterMemberListByName() {
+  const input = document.getElementById('memberNameFilter');
+  memberListNameFilter = normalizeMemberSearch(input ? input.value : '');
+  memberListCurrentPage = 1;
+  renderMembers();
+}
+
+function changeMemberListPage(page) {
+  memberListCurrentPage = page;
+  renderMembers();
 }
 
 function refreshMemberReportGPFilter() {
@@ -56,12 +126,23 @@ function refreshMemberReportGPFilter() {
 function getFilteredMembersForReport() {
   const filterEl = document.getElementById('memberReportGpFilter');
   const gpId = filterEl ? filterEl.value : '';
-  return gpId
+  const nameInput = document.getElementById('memberReportNameFilter');
+  memberReportNameFilter = normalizeMemberSearch(nameInput ? nameInput.value : '');
+  const gpFiltered = gpId
     ? members.filter(m => String(m.gpId) === String(gpId))
     : members.slice();
+  return gpFiltered.filter(m => memberMatchesName(m, memberReportNameFilter));
 }
 
 function filterMemberReportByGP() {
+  memberReportCurrentPage = 1;
+  renderMemberReportTable();
+}
+
+function filterMemberReportByName() {
+  const input = document.getElementById('memberReportNameFilter');
+  memberReportNameFilter = normalizeMemberSearch(input ? input.value : '');
+  memberReportCurrentPage = 1;
   renderMemberReportTable();
 }
 
@@ -75,19 +156,28 @@ function renderMemberReportTable() {
     return;
   }
 
+  const pagination = paginateMembers(filtered, memberReportCurrentPage);
+  memberReportCurrentPage = pagination.safePage;
+
   wrap.innerHTML = `<table>
     <tr><th>#</th><th>Nombre</th><th>Apellido</th><th>GP</th></tr>
-    ${filtered.map((m, i) => {
+    ${pagination.pageItems.map((m, i) => {
       const gp = participants.find(p => p.id === m.gpId);
       const gpName = gp ? gp.name : (m.gpName || 'GP no disponible');
       return `<tr>
-        <td>${i + 1}</td>
+        <td>${pagination.startIndex + i + 1}</td>
         <td>${esc(m.nombre || '')}</td>
         <td>${esc(m.apellido || '')}</td>
         <td>${esc(gpName)}</td>
       </tr>`;
     }).join('')}
-  </table>`;
+  </table>
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'changeMemberReportPage')}`;
+}
+
+function changeMemberReportPage(page) {
+  memberReportCurrentPage = page;
+  renderMemberReportTable();
 }
 
 function printMembersReportPDF() {

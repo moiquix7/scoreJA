@@ -357,6 +357,47 @@ tr:hover td { background: rgba(99,102,241,0.05); }
   font-style: italic;
 }
 
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card2);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--mision);
+}
+
+.pagination-btn.active {
+  background: var(--mision);
+  border-color: var(--mision);
+  color: #fff;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .activity-select-row {
   display: flex;
   align-items: center;
