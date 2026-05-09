@@ -108,11 +108,7 @@ function toggleAttendance(memberId, isPresent) {
     .catch(err => console.error('Error guardando asistencia:', err));
 
   // Update summary
-  const gpId = document.getElementById('attendanceGPFilter').value;
-  const filtered = gpId
-    ? members.filter(m => String(m.gpId) === String(gpId))
-    : members.slice();
-  updateAttendanceSummary(filtered);
+  updateAttendanceSummary(getFilteredAttendanceMembers());
 }
 
 function changeAttendanceEventType() {

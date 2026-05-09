@@ -1,4 +1,6 @@
 // ========== ATTENDANCE UI ==========
+let attendanceNameFilter = '';
+
 function renderAsistencia() {
   // Set default date to today if not set
   const dateInput = document.getElementById('attendanceDate');
@@ -21,11 +23,19 @@ function renderAsistencia() {
   loadAttendance(attendanceCurrentDate);
 }
 
-function filterAttendanceByGP() {
-  const gpId = document.getElementById('attendanceGPFilter').value;
-  const filtered = gpId
+function getFilteredAttendanceMembers() {
+  const gpFilter = document.getElementById('attendanceGPFilter');
+  const gpId = gpFilter ? gpFilter.value : '';
+  const nameInput = document.getElementById('attendanceNameFilter');
+  attendanceNameFilter = normalizeSearchText(nameInput ? nameInput.value : '');
+  const gpFiltered = gpId
     ? members.filter(m => String(m.gpId) === String(gpId))
     : members.slice();
+  return gpFiltered.filter(m => memberMatchesName(m, attendanceNameFilter));
+}
+
+function filterAttendanceByGP() {
+  const filtered = getFilteredAttendanceMembers();
 
   const wrap = document.getElementById('attendanceTableWrap');
   if (!attendanceCurrentType) {
@@ -35,7 +45,9 @@ function filterAttendanceByGP() {
   }
 
   if (filtered.length === 0) {
-    wrap.innerHTML = '<p style="color:var(--muted);text-align:center;padding:1rem;">No hay miembros registrados.</p>';
+    wrap.innerHTML = `<p style="color:var(--muted);text-align:center;padding:1rem;">${
+      attendanceNameFilter ? 'No hay miembros para la búsqueda ingresada.' : 'No hay miembros registrados.'
+    }</p>`;
     updateAttendanceSummary(filtered);
     return;
   }
@@ -63,6 +75,12 @@ function filterAttendanceByGP() {
   </table>`;
 
   updateAttendanceSummary(filtered);
+}
+
+function filterAttendanceByName() {
+  const input = document.getElementById('attendanceNameFilter');
+  attendanceNameFilter = normalizeSearchText(input ? input.value : '');
+  filterAttendanceByGP();
 }
 
 function updateAttendanceSummary(filteredMembers) {
