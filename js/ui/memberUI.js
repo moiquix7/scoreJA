@@ -1,17 +1,19 @@
 // ========== MEMBER UI ==========
 const MEMBERS_PAGE_SIZE = 10;
+const MEMBER_PAGINATION_TARGET_LIST = 'list';
+const MEMBER_PAGINATION_TARGET_REPORT = 'report';
 let memberListNameFilter = '';
 let memberListCurrentPage = 1;
 let memberReportNameFilter = '';
 let memberReportCurrentPage = 1;
 
-function normalizeMemberSearch(value) {
+function normalizeSearchText(value) {
   return String(value || '').toLowerCase().trim();
 }
 
-function memberMatchesName(m, nameFilter) {
+function memberMatchesName(member, nameFilter) {
   if (!nameFilter) return true;
-  const fullName = `${m.nombre || ''} ${m.apellido || ''}`.toLowerCase();
+  const fullName = `${member.nombre || ''} ${member.apellido || ''}`.toLowerCase();
   return fullName.includes(nameFilter);
 }
 
@@ -29,7 +31,9 @@ function paginateMembers(items, currentPage) {
 
 function buildMembersPaginationHTML(currentPage, totalPages, paginationTarget) {
   if (totalPages <= 1) return '';
-  const safeTarget = paginationTarget === 'report' ? 'report' : 'list';
+  const safeTarget = paginationTarget === MEMBER_PAGINATION_TARGET_REPORT
+    ? MEMBER_PAGINATION_TARGET_REPORT
+    : MEMBER_PAGINATION_TARGET_LIST;
   const pages = Array.from({ length: totalPages }, (_, i) => {
     const page = i + 1;
     const activeClass = page === currentPage ? ' active' : '';
@@ -48,7 +52,7 @@ function bindMembersPagination(container) {
     btn.addEventListener('click', () => {
       const page = parseInt(btn.dataset.page, 10);
       if (!Number.isInteger(page) || page < 1) return;
-      if (btn.dataset.paginationTarget === 'report') {
+      if (btn.dataset.paginationTarget === MEMBER_PAGINATION_TARGET_REPORT) {
         changeMemberReportPage(page);
       } else {
         changeMemberListPage(page);
@@ -76,7 +80,7 @@ function renderMembers() {
   const el = document.getElementById('memberList');
   const nameInput = document.getElementById('memberNameFilter');
   if (nameInput) {
-    memberListNameFilter = normalizeMemberSearch(nameInput.value);
+    memberListNameFilter = normalizeSearchText(nameInput.value);
   }
   if (!members.length) {
     el.innerHTML = '<div class="empty-state">No hay miembros registrados.</div>';
@@ -111,14 +115,14 @@ function renderMembers() {
       </tr>`;
     }).join('')}
   </table>
-  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'list')}`;
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, MEMBER_PAGINATION_TARGET_LIST)}`;
   bindMembersPagination(el);
   renderMemberReportTable();
 }
 
 function filterMemberListByName() {
   const input = document.getElementById('memberNameFilter');
-  memberListNameFilter = normalizeMemberSearch(input ? input.value : '');
+  memberListNameFilter = normalizeSearchText(input ? input.value : '');
   memberListCurrentPage = 1;
   renderMembers();
 }
@@ -144,7 +148,7 @@ function getFilteredMembersForReport() {
   const filterEl = document.getElementById('memberReportGpFilter');
   const gpId = filterEl ? filterEl.value : '';
   const nameInput = document.getElementById('memberReportNameFilter');
-  memberReportNameFilter = normalizeMemberSearch(nameInput ? nameInput.value : '');
+  memberReportNameFilter = normalizeSearchText(nameInput ? nameInput.value : '');
   const gpFiltered = gpId
     ? members.filter(m => String(m.gpId) === String(gpId))
     : members.slice();
@@ -158,7 +162,7 @@ function filterMemberReportByGP() {
 
 function filterMemberReportByName() {
   const input = document.getElementById('memberReportNameFilter');
-  memberReportNameFilter = normalizeMemberSearch(input ? input.value : '');
+  memberReportNameFilter = normalizeSearchText(input ? input.value : '');
   memberReportCurrentPage = 1;
   renderMemberReportTable();
 }
@@ -189,7 +193,7 @@ function renderMemberReportTable() {
       </tr>`;
     }).join('')}
   </table>
-  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, 'report')}`;
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, MEMBER_PAGINATION_TARGET_REPORT)}`;
   bindMembersPagination(wrap);
 }
 
