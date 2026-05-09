@@ -5,7 +5,7 @@ function normalizeAttendanceSearchText(value) {
 
 function attendanceMemberMatchesName(member, nameFilter) {
   if (!nameFilter) return true;
-  const fullName = `${member.nombre || ''} ${member.apellido || ''}`.toLowerCase();
+  const fullName = `${member.nombre || ''} ${member.apellido || ''}`.trim().toLowerCase();
   return fullName.includes(nameFilter);
 }
 
@@ -34,6 +34,7 @@ function renderAsistencia() {
 function getFilteredAttendanceMembers() {
   const gpFilter = document.getElementById('attendanceGPFilter');
   const gpId = gpFilter ? gpFilter.value : '';
+  const hasGpFilter = !!gpId;
   const nameInput = document.getElementById('attendanceNameFilter');
   const nameFilter = normalizeAttendanceSearchText(nameInput ? nameInput.value : '');
   const gpFiltered = gpId
@@ -41,12 +42,13 @@ function getFilteredAttendanceMembers() {
     : members.slice();
   return {
     filteredMembers: gpFiltered.filter(m => attendanceMemberMatchesName(m, nameFilter)),
-    hasNameFilter: !!nameFilter
+    hasNameFilter: !!nameFilter,
+    hasGpFilter
   };
 }
 
 function applyAttendanceFilters() {
-  const { filteredMembers, hasNameFilter } = getFilteredAttendanceMembers();
+  const { filteredMembers, hasNameFilter, hasGpFilter } = getFilteredAttendanceMembers();
 
   const wrap = document.getElementById('attendanceTableWrap');
   if (!attendanceCurrentType) {
@@ -56,7 +58,6 @@ function applyAttendanceFilters() {
   }
 
   if (filteredMembers.length === 0) {
-    const hasGpFilter = !!document.getElementById('attendanceGPFilter')?.value;
     wrap.innerHTML = `<p style="color:var(--muted);text-align:center;padding:1rem;">${
       hasNameFilter || hasGpFilter
         ? 'No hay miembros que coincidan con los filtros seleccionados.'
