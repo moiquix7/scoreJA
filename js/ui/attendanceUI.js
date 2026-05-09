@@ -34,7 +34,7 @@ function getFilteredAttendanceMembers() {
   return gpFiltered.filter(m => memberMatchesName(m, attendanceNameFilter));
 }
 
-function filterAttendanceByGP() {
+function applyAttendanceFilters() {
   const filtered = getFilteredAttendanceMembers();
 
   const wrap = document.getElementById('attendanceTableWrap');
@@ -45,8 +45,11 @@ function filterAttendanceByGP() {
   }
 
   if (filtered.length === 0) {
+    const hasGpFilter = !!document.getElementById('attendanceGPFilter')?.value;
     wrap.innerHTML = `<p style="color:var(--muted);text-align:center;padding:1rem;">${
-      attendanceNameFilter ? 'No hay miembros para la búsqueda ingresada.' : 'No hay miembros registrados.'
+      attendanceNameFilter || hasGpFilter
+        ? 'No hay miembros que coincidan con los filtros seleccionados.'
+        : 'No hay miembros registrados.'
     }</p>`;
     updateAttendanceSummary(filtered);
     return;
@@ -77,10 +80,12 @@ function filterAttendanceByGP() {
   updateAttendanceSummary(filtered);
 }
 
+function filterAttendanceByGP() {
+  applyAttendanceFilters();
+}
+
 function filterAttendanceByName() {
-  const input = document.getElementById('attendanceNameFilter');
-  attendanceNameFilter = normalizeSearchText(input ? input.value : '');
-  filterAttendanceByGP();
+  applyAttendanceFilters();
 }
 
 function updateAttendanceSummary(filteredMembers) {
