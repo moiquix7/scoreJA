@@ -96,7 +96,7 @@ function toggleAttendance(memberId, isPresent) {
   attendanceData[memberId] = isPresent;
   const statusEl = document.getElementById('att-status-' + memberId);
   if (statusEl) {
-    statusEl.textContent = isPresent ? 'Presente' : 'Ausente';
+    statusEl.textContent = isPresent ? 'Puntual' : 'Retrasado';
     statusEl.style.color = isPresent ? 'var(--relacion)' : 'var(--danger)';
   }
 
