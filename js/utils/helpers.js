@@ -12,10 +12,10 @@ function logoHTML(p) {
 
 function getBarColor(name) {
   const n = name.toLowerCase().trim();
-  if (n.includes('heroes de fe')) return '#ef4444';
-  if (n.includes('portadores de luz')) return '#f59e0b';
-  if (n.includes('leones de juda')) return '#22c55e';
-  return 'linear-gradient(90deg, var(--mision), var(--relacion))';
+  if (n.includes('heroes de fe')) return '#f10909';
+  if (n.includes('portadores de luz')) return '#e6f513';
+  if (n.includes('leones de judá')) return '#0e9740';
+  return n;
 }
 
 function sanitizeFilename(text) {

@@ -42,7 +42,7 @@ function toggleEditLogoType() {
 
 function renderParticipants() {
   const el = document.getElementById('participantList');
-  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay participantes registrados.</div>'; return; }
+  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay GP registrados.</div>'; return; }
   el.innerHTML = `<table>
     <tr><th>#</th><th>Logo</th><th>Nombre</th><th>Acciones</th></tr>
     ${participants.map((p, i) => `<tr>

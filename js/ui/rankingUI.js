@@ -1,7 +1,7 @@
 // ========== RANKING UI ==========
 function renderRanking() {
   const el = document.getElementById('rankingList');
-  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay participantes.</div>'; return; }
+  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay GPs.</div>'; return; }
 
   const data = participants.map(p => {
     const m = activities.filter(a => a.type === 'Mision').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
@@ -13,7 +13,7 @@ function renderRanking() {
   const max = Math.max(data[0]?.total || 1, 1);
 
   el.innerHTML = data.map((p, i) => {
-    const posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const posClass = i === 0 ? 'Oro' : i === 1 ? 'Plata' : i === 2 ? 'Bronce' : '';
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
     const pct = (p.total / max * 100).toFixed(1);
     return `<div class="ranking-item">
