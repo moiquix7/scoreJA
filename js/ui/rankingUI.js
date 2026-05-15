@@ -1,7 +1,7 @@
 // ========== RANKING UI ==========
 function renderRanking() {
   const el = document.getElementById('rankingList');
-  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay participantes.</div>'; return; }
+  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay GPs.</div>'; return; }
 
   const data = participants.map(p => {
     const m = activities.filter(a => a.type === 'Mision').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);

@@ -44,7 +44,7 @@
 </header>
 
 <nav>
-  <button class="active" onclick="showSection('participantes', this)">👥 Participantes</button>
+  <button class="active" onclick="showSection('participantes', this)">👥 Grupos Pequeños</button>
   <button onclick="showSection('secretaria', this)">📝 Secretaría</button>
   <button onclick="showSection('actividades', this)">📋 Actividades</button>
   <button onclick="showSection('asignar', this)">🎯 Asignar Puntos</button>
@@ -57,7 +57,7 @@
 <!-- SECCIÓN 1: PARTICIPANTES -->
 <div class="section active" id="sec-participantes">
   <div class="card">
-    <h2>👥 Registrar Participante</h2>
+    <h2>👥 Registrar Grupo Pequeño</h2>
     <div class="logo-option">
       <label><input type="radio" name="logoType" value="emoji" checked onchange="toggleLogoType()"> Usar Emoji</label>
       <label><input type="radio" name="logoType" value="image" onchange="toggleLogoType()"> Subir Imagen</label>
@@ -72,14 +72,14 @@
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Nombre del Participante</label>
+        <label>Nombre del GP</label>
         <input type="text" id="participantName" placeholder="Ej: Grupo Esperanza">
       </div>
       <button class="btn btn-primary" onclick="addParticipant()" style="align-self:flex-end;">+ Agregar</button>
     </div>
   </div>
   <div class="card">
-    <h2>📃 Lista de Participantes</h2>
+    <h2>📃 Lista de GPs</h2>
     <div id="participantList"></div>
   </div>
 </div>
@@ -196,7 +196,7 @@
     <div style="overflow-x:auto;" id="assignTableWrap"></div>
   </div>
   <div class="card">
-    <h2>📊 Resumen de Puntos por Participante</h2>
+    <h2>📊 Resumen de Puntos por GP</h2>
     <div style="overflow-x:auto;" id="summaryTableWrap"></div>
   </div>
 </div>
@@ -277,7 +277,7 @@
 <div class="modal-overlay" id="modalEditParticipant">
   <div class="modal">
     <button class="close-btn" onclick="closeModal('modalEditParticipant')">&times;</button>
-    <h3>✏️ Editar Participante</h3>
+    <h3>✏️ Editar GP</h3>
     <div class="logo-option">
       <label><input type="radio" name="editLogoType" value="emoji" checked onchange="toggleEditLogoType()"> Emoji</label>
       <label><input type="radio" name="editLogoType" value="image" onchange="toggleEditLogoType()"> Imagen</label>

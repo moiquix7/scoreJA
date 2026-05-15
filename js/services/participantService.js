@@ -1,7 +1,7 @@
 // ========== PARTICIPANTS SERVICE ==========
 function addParticipant() {
   const name = document.getElementById('participantName').value.trim();
-  if (!name) return alert('Ingresa un nombre para el participante.');
+  if (!name) return alert('Ingresa un nombre para el GP.');
   const type = document.querySelector('input[name="logoType"]:checked').value;
   if (type === 'emoji') {
     if (!selectedEmoji) return alert('Selecciona un emoji.');
@@ -24,7 +24,7 @@ function addParticipant() {
 }
 
 function removeParticipant(id) {
-  if (!confirm('¿Eliminar este participante y todos sus puntos?')) return;
+  if (!confirm('¿Eliminar este GP y todos sus puntos?')) return;
   participants = participants.filter(p => p.id !== id);
   Object.keys(points).forEach(k => { if (k.startsWith(id + '-')) delete points[k]; });
   save(); renderParticipants(); populateMemberGPSelect(); renderMembers();

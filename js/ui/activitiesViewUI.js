@@ -2,7 +2,7 @@
 function renderVerActividades() {
   const wrap = document.getElementById('verActividadesTableWrap');
   if (!activities.length || !participants.length) {
-    wrap.innerHTML = '<div class="empty-state">No hay actividades o participantes registrados.</div>';
+    wrap.innerHTML = '<div class="empty-state">No hay actividades o GP registrados.</div>';
     return;
   }
 

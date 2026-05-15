@@ -145,7 +145,7 @@ function renderSummary() {
 
   wrap.innerHTML = `<table>
     <tr>
-      <th>Participante</th>
+      <th>GP</th>
       <th class="th-mision" style="text-align:center;">🚀 Misión</th>
       <th class="th-comunion" style="text-align:center;">🙏 Comunión</th>
       <th class="th-relacion" style="text-align:center;">🤝 Relación</th>
