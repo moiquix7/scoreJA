@@ -83,7 +83,7 @@ function applyAttendanceFilters() {
           </label>
         </td>
         <td id="att-status-${m.id}" style="font-weight:700;color:${present ? 'var(--relacion)' : 'var(--danger)'};">
-          ${present ? 'Presente' : 'Ausente'}
+          ${present ? 'Puntual' : 'Retrasado'}
         </td>
       </tr>`;
     }).join('')}
@@ -176,10 +176,10 @@ function printAttendanceByGroupPDF() {
 
     const rows = group.members.map(m => {
       const present = !!attendanceData[m.id];
-      return [m.nombre || '', m.apellido || '', present ? 'Presente ✅' : 'Ausente ❌'];
+      return [m.nombre || '', m.apellido || '', present ? 'Puntual ✅' : 'Retrasado ❌'];
     });
 
-    const groupPresent = rows.filter(r => r[2].includes('Presente')).length;
+    const groupPresent = rows.filter(r => r[2].includes('Puntual')).length;
     const groupAbsent = rows.length - groupPresent;
     totalPresent += groupPresent;
     totalAbsent += groupAbsent;
@@ -195,7 +195,7 @@ function printAttendanceByGroupPDF() {
 
     y = doc.lastAutoTable.finalY + 6;
     doc.setFontSize(10);
-    doc.text(`Resumen ${group.name}: Presentes ${groupPresent} | Ausentes ${groupAbsent}`, 14, y);
+    doc.text(`Resumen ${group.name}: Puntuales ${groupPresent} | Retrasado ${groupAbsent}`, 14, y);
     y += 8;
   });
 
@@ -204,7 +204,7 @@ function printAttendanceByGroupPDF() {
     y = 20;
   }
   doc.setFontSize(11);
-  doc.text(`Total general: Presentes ${totalPresent} | Ausentes ${totalAbsent} | Total ${totalPresent + totalAbsent}`, 14, y);
+  doc.text(`Total general: Puntuales ${totalPresent} | Retrasados ${totalAbsent} | Total ${totalPresent + totalAbsent}`, 14, y);
 
   doc.save(`asistencia_${sanitizeFilename(date)}_${sanitizeFilename(type)}.pdf`);
 }
