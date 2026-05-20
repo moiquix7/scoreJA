@@ -122,6 +122,46 @@ function changeAttendanceEventType() {
   }
 }
 
+function computeMostPunctualMember(data) {
+  const counts = {};
+  Object.keys(data).forEach(date => {
+    const dateData = data[date];
+    if (!dateData || typeof dateData !== 'object') return;
+    const isLegacy = isLegacyAttendanceData(dateData);
+    if (isLegacy) {
+      Object.keys(dateData).forEach(memberId => {
+        if (dateData[memberId] === true) {
+          counts[memberId] = (counts[memberId] || 0) + 1;
+        }
+      });
+    } else {
+      Object.keys(dateData).forEach(type => {
+        const typeData = dateData[type];
+        if (!typeData || typeof typeData !== 'object') return;
+        const membersData = (typeData.members && typeof typeData.members === 'object')
+          ? typeData.members
+          : null;
+        if (!membersData) return;
+        Object.keys(membersData).forEach(memberId => {
+          if (membersData[memberId] === true) {
+            counts[memberId] = (counts[memberId] || 0) + 1;
+          }
+        });
+      });
+    }
+  });
+  let bestId = null;
+  let bestCount = 0;
+  // In case of a tie, the first member encountered wins (Object.keys insertion order)
+  Object.keys(counts).forEach(memberId => {
+    if (counts[memberId] > bestCount) {
+      bestCount = counts[memberId];
+      bestId = memberId;
+    }
+  });
+  return bestCount > 0 ? { memberId: bestId, count: bestCount } : null;
+}
+
 function loadAttendanceHistory() {
   db.ref('ja_attendance').once('value').then(snap => {
     const data = snap.val() || {};
@@ -172,6 +212,8 @@ function loadAttendanceHistory() {
 
     attendanceHistory = uniqueEntries;
     renderAttendanceHistory();
+    const mostPunctual = computeMostPunctualMember(data);
+    renderMostPunctualMember(mostPunctual);
   }).catch(err => console.error('Error cargando historial de asistencia:', err));
 }
 
