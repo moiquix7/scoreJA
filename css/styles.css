@@ -372,6 +372,12 @@ tr:hover td { background: rgba(99,102,241,0.05); }
   flex-wrap: wrap;
 }
 
+.pagination-total-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-right: auto;
+}
+
 .pagination-btn {
   padding: 0.35rem 0.65rem;
   border: 1px solid var(--border);
@@ -763,4 +769,34 @@ tr:hover td { background: rgba(99,102,241,0.05); }
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* ===== ASISTENCIA: MOST PUNCTUAL BADGE ===== */
+.most-punctual-badge {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--card2);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  border: 2px solid var(--comunion);
+}
+.most-punctual-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+.most-punctual-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.most-punctual-gp {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+.most-punctual-count {
+  font-size: 0.9rem;
+  color: var(--comunion);
+  font-weight: 600;
+  margin-top: 0.3rem;
 }

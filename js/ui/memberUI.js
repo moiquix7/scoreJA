@@ -29,17 +29,23 @@ function paginateMembers(items, currentPage) {
   };
 }
 
-function buildMembersPaginationHTML(currentPage, totalPages, paginationTarget) {
-  if (totalPages <= 1) return '';
+function buildMembersPaginationHTML(currentPage, totalPages, paginationTarget, totalItems) {
   const safeTarget = paginationTarget === MEMBER_PAGINATION_TARGET_REPORT
     ? MEMBER_PAGINATION_TARGET_REPORT
     : MEMBER_PAGINATION_TARGET_LIST;
+  const totalLabel = (totalItems !== undefined)
+    ? `<span class="pagination-total-label">Total: ${totalItems} miembro${totalItems !== 1 ? 's' : ''}</span>`
+    : '';
+  if (totalPages <= 1) {
+    return totalLabel ? `<div class="table-pagination">${totalLabel}</div>` : '';
+  }
   const pages = Array.from({ length: totalPages }, (_, i) => {
     const page = i + 1;
     const activeClass = page === currentPage ? ' active' : '';
     return `<button class="pagination-btn${activeClass}" data-pagination-target="${safeTarget}" data-page="${page}">${page}</button>`;
   }).join('');
   return `<div class="table-pagination">
+    ${totalLabel}
     <button class="pagination-btn" data-pagination-target="${safeTarget}" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
     <div class="pagination-pages">${pages}</div>
     <button class="pagination-btn" data-pagination-target="${safeTarget}" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Siguiente</button>
@@ -193,7 +199,7 @@ function renderMemberReportTable() {
       </tr>`;
     }).join('')}
   </table>
-  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, MEMBER_PAGINATION_TARGET_REPORT)}`;
+  ${buildMembersPaginationHTML(pagination.safePage, pagination.totalPages, MEMBER_PAGINATION_TARGET_REPORT, filtered.length)}`;
   bindMembersPagination(wrap);
 }
 
