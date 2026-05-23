@@ -1,7 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --mision: #6366f1;
+  --mision: #474891;
   --comunion: #f59e0b;
   --relacion: #10b981;
   --bg: #0f172a;
@@ -347,7 +347,7 @@ tr:hover td { background: rgba(99,102,241,0.05); }
   font-weight: 900;
   min-width: 60px;
   text-align: right;
-  color: var(--mision);
+  color: #ffffff;
 }
 
 .empty-state {

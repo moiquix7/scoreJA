@@ -9,29 +9,7 @@ function attendanceMemberMatchesName(member, nameFilter) {
   return fullName.includes(nameFilter);
 }
 
-function renderMostPunctualMember(result) {
-  const wrap = document.getElementById('mostPunctualWrap');
-  if (!wrap) return;
-  if (!result || !result.memberId) {
-    wrap.innerHTML = '<div class="empty-state">No hay datos de asistencia suficientes.</div>';
-    return;
-  }
-  const member = members.find(m => String(m.id) === String(result.memberId));
-  if (!member) {
-    wrap.innerHTML = '<div class="empty-state">No hay datos de asistencia suficientes.</div>';
-    return;
-  }
-  const gp = participants.find(p => p.id === member.gpId);
-  const gpName = gp ? gp.name : (member.gpName || 'Sin GP');
-  wrap.innerHTML = `<div class="most-punctual-badge">
-    <div class="most-punctual-icon">⭐</div>
-    <div class="most-punctual-info">
-      <div class="most-punctual-name">${esc((member.nombre || '') + ' ' + (member.apellido || ''))}</div>
-      <div class="most-punctual-gp">${esc(gpName)}</div>
-      <div class="most-punctual-count">${result.count} asistencia${result.count !== 1 ? 's' : ''} puntual${result.count !== 1 ? 'es' : ''}</div>
-    </div>
-  </div>`;
-}
+
 
 function renderAsistencia() {
   // Set default date to today if not set
