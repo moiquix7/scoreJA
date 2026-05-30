@@ -151,7 +151,7 @@ function printAttendanceByGroupPDF() {
   db.ref('ja_attendance').once('value').then(snap => {
     const allData = snap.val() || {};
 
-    // Build punctual member sets per type: { JA: { memberId: [dates...] }, EscuelaSabatica: { memberId: [dates...] } }
+    // Build punctual member sets per type: { JA: { memberId: Set(dates) }, EscuelaSabatica: { memberId: Set(dates) } }
     const punctualByType = { JA: {}, EscuelaSabatica: {} };
 
     Object.keys(allData).forEach(date => {
@@ -163,8 +163,8 @@ function printAttendanceByGroupPDF() {
       if (isLegacy) {
         Object.keys(dateData).forEach(memberId => {
           if (dateData[memberId] === true) {
-            if (!punctualByType.JA[memberId]) punctualByType.JA[memberId] = [];
-            punctualByType.JA[memberId].push(date);
+            if (!punctualByType.JA[memberId]) punctualByType.JA[memberId] = new Set();
+            punctualByType.JA[memberId].add(date);
           }
         });
       }
@@ -179,8 +179,8 @@ function printAttendanceByGroupPDF() {
         if (!membersData) return;
         Object.keys(membersData).forEach(memberId => {
           if (membersData[memberId] === true) {
-            if (!punctualByType[type][memberId]) punctualByType[type][memberId] = [];
-            punctualByType[type][memberId].push(date);
+            if (!punctualByType[type][memberId]) punctualByType[type][memberId] = new Set();
+            punctualByType[type][memberId].add(date);
           }
         });
       });
@@ -220,12 +220,18 @@ function printAttendanceByGroupPDF() {
       y += 8;
 
       let catTotal = 0;
+      let catTotalPunctualEvents = 0;
+      let groupsWithPunctualMembers = 0;
 
       groups.forEach(group => {
         // Filter only punctual members in this group for this category
-        const punctualInGroup = group.members.filter(m => punctualMembers[String(m.id)]);
+        const punctualInGroup = group.members.filter(m => {
+          const datesSet = punctualMembers[String(m.id)];
+          return datesSet && datesSet.size > 0;
+        });
 
         if (punctualInGroup.length === 0) return;
+        groupsWithPunctualMembers += 1;
 
         if (y > 260) {
           doc.addPage();
@@ -237,11 +243,13 @@ function printAttendanceByGroupPDF() {
         y += 3;
 
         const rows = punctualInGroup.map(m => {
-          const dates = punctualMembers[String(m.id)] || [];
-          return [m.nombre || '', m.apellido || '', String(dates.length), dates.sort().join(', ')];
+          const dates = Array.from(punctualMembers[String(m.id)] || []).sort();
+          return [m.nombre || '', m.apellido || '', String(dates.length), dates.join(', ')];
         });
 
         catTotal += punctualInGroup.length;
+        const groupPunctualEvents = rows.reduce((sum, row) => sum + Number(row[2]), 0);
+        catTotalPunctualEvents += groupPunctualEvents;
 
         doc.autoTable({
           startY: y + 2,
@@ -257,7 +265,7 @@ function printAttendanceByGroupPDF() {
 
         y = doc.lastAutoTable.finalY + 6;
         doc.setFontSize(10);
-        doc.text(`Puntuales en ${group.name}: ${punctualInGroup.length}`, 14, y);
+        doc.text(`Resumen ${group.name}: ${punctualInGroup.length} miembros puntuales / ${groupPunctualEvents} puntualidades`, 14, y);
         y += 8;
       });
 
@@ -266,7 +274,7 @@ function printAttendanceByGroupPDF() {
         y = 20;
       }
       doc.setFontSize(11);
-      doc.text(`Total puntuales ${cat.label}: ${catTotal}`, 14, y);
+      doc.text(`Total ${cat.label}: ${catTotal} miembros puntuales / ${catTotalPunctualEvents} puntualidades en ${groupsWithPunctualMembers} GP`, 14, y);
       y += 6;
     });
 
