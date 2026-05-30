@@ -243,7 +243,8 @@ function printAttendanceByGroupPDF() {
         y += 3;
 
         const rows = punctualInGroup.map(m => {
-          const dates = Array.from(punctualMembers[String(m.id)] || []).sort();
+          const datesSet = punctualMembers[String(m.id)];
+          const dates = datesSet ? Array.from(datesSet).sort() : [];
           return [m.nombre || '', m.apellido || '', String(dates.length), dates.join(', ')];
         });
 
