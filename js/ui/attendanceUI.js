@@ -139,11 +139,6 @@ function selectAttendanceHistoryFromEncoded(encodedDate, encodedType) {
 }
 
 function printAttendanceByGroupPDF() {
-  const dateInput = document.getElementById('attendanceDate');
-  const date = dateInput ? dateInput.value : '';
-  const type = document.getElementById('attendanceType').value;
-  if (!date || !type) return alert('Selecciona fecha y tipo de evento.');
-
   const groups = participants.map(p => ({
     id: p.id,
     name: p.name,
@@ -152,61 +147,132 @@ function printAttendanceByGroupPDF() {
 
   if (!groups.length) return alert('No hay miembros registrados para imprimir asistencia.');
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  // Fetch all attendance data from Firebase for all dates
+  db.ref('ja_attendance').once('value').then(snap => {
+    const allData = snap.val() || {};
 
-  doc.setFontSize(16);
-  doc.text('Manejo de Puntos - JA Vinto Central', 14, 15);
-  doc.setFontSize(10);
-  doc.text('Reporte de Asistencia por Grupo', 14, 22);
-  doc.text('Fecha: ' + date, 14, 28);
-  doc.text('Tipo de evento: ' + getAttendanceTypeLabel(type), 14, 34);
+    // Build punctual member sets per type: { JA: { memberId: [dates...] }, EscuelaSabatica: { memberId: [dates...] } }
+    const punctualByType = { JA: {}, EscuelaSabatica: {} };
 
-  let y = 40;
-  let totalPresent = 0;
-  let totalAbsent = 0;
+    Object.keys(allData).forEach(date => {
+      const dateData = allData[date];
+      if (!dateData || typeof dateData !== 'object') return;
 
-  groups.forEach(group => {
-    if (y > 260) {
-      doc.addPage();
-      y = 20;
-    }
+      // Handle legacy data (direct member booleans = JA)
+      const isLegacy = isLegacyAttendanceData(dateData);
+      if (isLegacy) {
+        Object.keys(dateData).forEach(memberId => {
+          if (dateData[memberId] === true) {
+            if (!punctualByType.JA[memberId]) punctualByType.JA[memberId] = [];
+            punctualByType.JA[memberId].push(date);
+          }
+        });
+      }
 
-    doc.setFontSize(11);
-    doc.text('GP: ' + group.name, 14, y);
-    y += 3;
-
-    const rows = group.members.map(m => {
-      const present = !!attendanceData[m.id];
-      return [m.nombre || '', m.apellido || '', present ? 'Puntual ✅' : 'Retrasado ❌'];
+      // Handle typed data
+      ['JA', 'EscuelaSabatica'].forEach(type => {
+        const typeData = dateData[type];
+        if (!typeData || typeof typeData !== 'object') return;
+        const membersData = (typeData.members && typeof typeData.members === 'object')
+          ? typeData.members
+          : null;
+        if (!membersData) return;
+        Object.keys(membersData).forEach(memberId => {
+          if (membersData[memberId] === true) {
+            if (!punctualByType[type][memberId]) punctualByType[type][memberId] = [];
+            punctualByType[type][memberId].push(date);
+          }
+        });
+      });
     });
 
-    const groupPresent = rows.filter(r => r[2].includes('Puntual')).length;
-    const groupAbsent = rows.length - groupPresent;
-    totalPresent += groupPresent;
-    totalAbsent += groupAbsent;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-    doc.autoTable({
-      startY: y + 2,
-      head: [['Nombre', 'Apellido', 'Estado']],
-      body: rows,
-      styles: { fontSize: 9, cellPadding: 2.8 },
-      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [241, 245, 249] }
-    });
-
-    y = doc.lastAutoTable.finalY + 6;
+    doc.setFontSize(16);
+    doc.text('Manejo de Puntos - JA Vinto Central', 14, 15);
     doc.setFontSize(10);
-    doc.text(`Resumen ${group.name}: Puntuales ${groupPresent} | Retrasado ${groupAbsent}`, 14, y);
-    y += 8;
+    doc.text('Reporte de Asistencia por Grupo - Solo Puntuales (Todas las fechas)', 14, 22);
+    doc.text('Fecha de generación: ' + new Date().toLocaleString('es-BO'), 14, 28);
+
+    let y = 36;
+
+    const categories = [
+      { key: 'EscuelaSabatica', label: 'Escuela Sabática' },
+      { key: 'JA', label: 'JA' }
+    ];
+
+    categories.forEach((cat, catIndex) => {
+      const punctualMembers = punctualByType[cat.key];
+
+      if (catIndex > 0) {
+        if (y > 250) {
+          doc.addPage();
+          y = 20;
+        }
+        y += 4;
+      }
+
+      doc.setFontSize(14);
+      doc.setTextColor(99, 102, 241);
+      doc.text('📌 ' + cat.label, 14, y);
+      doc.setTextColor(0, 0, 0);
+      y += 8;
+
+      let catTotal = 0;
+
+      groups.forEach(group => {
+        // Filter only punctual members in this group for this category
+        const punctualInGroup = group.members.filter(m => punctualMembers[String(m.id)]);
+
+        if (punctualInGroup.length === 0) return;
+
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.setFontSize(11);
+        doc.text('GP: ' + group.name, 14, y);
+        y += 3;
+
+        const rows = punctualInGroup.map(m => {
+          const dates = punctualMembers[String(m.id)] || [];
+          return [m.nombre || '', m.apellido || '', String(dates.length), dates.sort().join(', ')];
+        });
+
+        catTotal += punctualInGroup.length;
+
+        doc.autoTable({
+          startY: y + 2,
+          head: [['Nombre', 'Apellido', 'Veces Puntual', 'Fechas']],
+          body: rows,
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [241, 245, 249] },
+          columnStyles: {
+            3: { cellWidth: 60 }
+          }
+        });
+
+        y = doc.lastAutoTable.finalY + 6;
+        doc.setFontSize(10);
+        doc.text(`Puntuales en ${group.name}: ${punctualInGroup.length}`, 14, y);
+        y += 8;
+      });
+
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(11);
+      doc.text(`Total puntuales ${cat.label}: ${catTotal}`, 14, y);
+      y += 6;
+    });
+
+    doc.save('asistencia_puntuales_todas_fechas.pdf');
+  }).catch(err => {
+    console.error('Error generando reporte de asistencia:', err);
+    alert('Error al generar el reporte. Revisa la consola para más detalles.');
   });
-
-  if (y > 270) {
-    doc.addPage();
-    y = 20;
-  }
-  doc.setFontSize(11);
-  doc.text(`Total general: Puntuales ${totalPresent} | Retrasados ${totalAbsent} | Total ${totalPresent + totalAbsent}`, 14, y);
-
-  doc.save(`asistencia_${sanitizeFilename(date)}_${sanitizeFilename(type)}.pdf`);
 }
