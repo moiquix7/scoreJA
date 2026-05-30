@@ -225,10 +225,7 @@ function printAttendanceByGroupPDF() {
 
       groups.forEach(group => {
         // Filter only punctual members in this group for this category
-        const punctualInGroup = group.members.filter(m => {
-          const datesSet = punctualMembers[String(m.id)];
-          return datesSet && datesSet.size > 0;
-        });
+        const punctualInGroup = group.members.filter(m => (punctualMembers[String(m.id)]?.size || 0) > 0);
 
         if (punctualInGroup.length === 0) return;
         groupsWithPunctualMembers += 1;
@@ -249,7 +246,10 @@ function printAttendanceByGroupPDF() {
         });
 
         catTotal += punctualInGroup.length;
-        const groupPunctualEvents = rows.reduce((sum, row) => sum + Number(row[2]), 0);
+        const groupPunctualEvents = rows.reduce((sum, row) => {
+          const [, , punctualCount] = row;
+          return sum + Number(punctualCount);
+        }, 0);
         catTotalPunctualEvents += groupPunctualEvents;
 
         doc.autoTable({
