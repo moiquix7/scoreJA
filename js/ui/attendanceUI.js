@@ -247,7 +247,7 @@ function printAttendanceByGroupPDF() {
 
         catTotal += punctualInGroup.length;
         const groupPunctualEvents = rows.reduce((sum, row) => {
-          const [, , punctualCount] = row;
+          const punctualCount = row[2];
           return sum + Number(punctualCount);
         }, 0);
         catTotalPunctualEvents += groupPunctualEvents;
@@ -266,7 +266,7 @@ function printAttendanceByGroupPDF() {
 
         y = doc.lastAutoTable.finalY + 6;
         doc.setFontSize(10);
-        doc.text(`Resumen ${group.name}: ${punctualInGroup.length} miembros puntuales / ${groupPunctualEvents} puntualidades`, 14, y);
+        doc.text(`Resumen ${group.name}: ${punctualInGroup.length} miembros puntuales / ${groupPunctualEvents} asistencias puntuales`, 14, y);
         y += 8;
       });
 
@@ -275,7 +275,7 @@ function printAttendanceByGroupPDF() {
         y = 20;
       }
       doc.setFontSize(11);
-      doc.text(`Total ${cat.label}: ${catTotal} miembros puntuales / ${catTotalPunctualEvents} puntualidades en ${groupsWithPunctualMembers} GP`, 14, y);
+      doc.text(`Total ${cat.label}: ${catTotal} miembros puntuales / ${catTotalPunctualEvents} asistencias puntuales en ${groupsWithPunctualMembers} GP`, 14, y);
       y += 6;
     });
 
