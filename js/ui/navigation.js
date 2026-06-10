@@ -7,6 +7,7 @@ function showSection(name, btn) {
   if (name === 'asignar') { populateAssignSelect(); renderAssignTable(); renderSummary(); }
   if (name === 'ranking') renderRanking();
   if (name === 'veractividades') renderVerActividades();
+  if (name === 'eventos') renderEventos();
   if (name === 'secretaria') { populateMemberGPSelect(); renderMembers(); }
   if (name === 'asistencia') renderAsistencia();
 }
