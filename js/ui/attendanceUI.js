@@ -9,6 +9,116 @@ function attendanceMemberMatchesName(member, nameFilter) {
   return fullName.includes(nameFilter);
 }
 
+let _closeAttendanceEventTimeout = null;
+
+function getAttendanceEventNameById(id) {
+  const event = eventos.find(e => String(e.id) === String(id));
+  return event ? event.name : '';
+}
+
+function getAttendanceEventOptions(query) {
+  const normalizedQuery = String(query || '').toLowerCase().trim();
+  return normalizedQuery
+    ? eventos.filter(e =>
+        String(e.name || '').toLowerCase().includes(normalizedQuery) ||
+        String(e.description || '').toLowerCase().includes(normalizedQuery))
+    : eventos;
+}
+
+function renderAttendanceEventDropdown(query) {
+  const dropdown = document.getElementById('attendanceEventDropdown');
+  if (!dropdown) return;
+  const currentId = document.getElementById('attendanceType').value;
+  const filtered = getAttendanceEventOptions(query);
+  if (!filtered.length) {
+    dropdown.innerHTML = '<div class="searchable-dropdown-empty">No hay eventos registrados</div>';
+    return;
+  }
+  dropdown.innerHTML = filtered.map(e =>
+    `<div class="searchable-dropdown-item${String(e.id) === String(currentId) ? ' selected-item' : ''}"
+          data-id="${encodeURIComponent(String(e.id))}"
+          data-name="${esc(e.name || '')}"
+          onmousedown="selectAttendanceEventType(decodeURIComponent(this.dataset.id), this.dataset.name)">
+      ${esc(e.name || '')}
+    </div>`
+  ).join('');
+}
+
+function filterAttendanceEventTypes() {
+  const searchInput = document.getElementById('attendanceEventSearch');
+  const hiddenInput = document.getElementById('attendanceType');
+  if (!searchInput || !hiddenInput) return;
+  hiddenInput.value = '';
+  renderAttendanceEventDropdown(searchInput.value);
+  document.getElementById('attendanceEventDropdown').classList.add('open');
+}
+
+function openAttendanceEventDropdown() {
+  if (_closeAttendanceEventTimeout) {
+    clearTimeout(_closeAttendanceEventTimeout);
+    _closeAttendanceEventTimeout = null;
+  }
+  renderAttendanceEventDropdown(document.getElementById('attendanceEventSearch').value);
+  document.getElementById('attendanceEventDropdown').classList.add('open');
+}
+
+function scheduleCloseAttendanceEventDropdown() {
+  _closeAttendanceEventTimeout = setTimeout(() => {
+    document.getElementById('attendanceEventDropdown').classList.remove('open');
+    _closeAttendanceEventTimeout = null;
+  }, 150);
+}
+
+function selectAttendanceEventType(id, name, skipReload) {
+  if (_closeAttendanceEventTimeout) {
+    clearTimeout(_closeAttendanceEventTimeout);
+    _closeAttendanceEventTimeout = null;
+  }
+  const hiddenInput = document.getElementById('attendanceType');
+  const searchInput = document.getElementById('attendanceEventSearch');
+  const nextName = name || getAttendanceEventNameById(id) || getAttendanceTypeLabel(id);
+  if (hiddenInput) hiddenInput.value = id || '';
+  if (searchInput) searchInput.value = nextName || '';
+  document.getElementById('attendanceEventDropdown').classList.remove('open');
+  if (!skipReload) changeAttendanceEventType();
+}
+
+function clearAttendanceEventType(skipReload) {
+  const hiddenInput = document.getElementById('attendanceType');
+  const searchInput = document.getElementById('attendanceEventSearch');
+  if (hiddenInput) hiddenInput.value = '';
+  if (searchInput) searchInput.value = '';
+  document.getElementById('attendanceEventDropdown').classList.remove('open');
+  if (!skipReload) changeAttendanceEventType();
+}
+
+function refreshAttendanceEventTypes() {
+  const hiddenInput = document.getElementById('attendanceType');
+  const searchInput = document.getElementById('attendanceEventSearch');
+  if (!hiddenInput || !searchInput) return;
+
+  const current = hiddenInput.value;
+  if (!current) {
+    searchInput.value = '';
+  } else {
+    const eventName = getAttendanceEventNameById(current);
+    if (eventName) {
+      searchInput.value = eventName;
+    } else {
+      const fallbackLabel = getAttendanceTypeLabel(current);
+      if (fallbackLabel && fallbackLabel !== current) {
+        searchInput.value = fallbackLabel;
+      } else {
+        clearAttendanceEventType(true);
+      }
+    }
+  }
+
+  const dropdown = document.getElementById('attendanceEventDropdown');
+  if (dropdown && dropdown.classList.contains('open')) {
+    renderAttendanceEventDropdown(searchInput.value);
+  }
+}
 
 
 function renderAsistencia() {
@@ -17,6 +127,7 @@ function renderAsistencia() {
   if (!dateInput.value) {
     dateInput.value = new Date().toISOString().slice(0, 10);
   }
+  refreshAttendanceEventTypes();
   const typeInput = document.getElementById('attendanceType');
 
   attendanceCurrentDate = dateInput.value;
@@ -151,8 +262,18 @@ function printAttendanceByGroupPDF() {
   db.ref('ja_attendance').once('value').then(snap => {
     const allData = snap.val() || {};
 
-    // Build punctual member sets per type: { JA: { memberId: Set(dates) }, EscuelaSabatica: { memberId: Set(dates) } }
-    const punctualByType = { JA: {}, EscuelaSabatica: {} };
+    const punctualByType = {};
+    const ensureBucket = (typeKey) => {
+      if (!punctualByType[typeKey]) punctualByType[typeKey] = {};
+      return punctualByType[typeKey];
+    };
+    const legacyTypeToEventId = {};
+    eventos.forEach(e => {
+      const normalized = normalizeAttendanceTypeToken(e.name);
+      if (normalized === 'ja') legacyTypeToEventId.JA = String(e.id);
+      if (normalized === 'escuelasabatica') legacyTypeToEventId.EscuelaSabatica = String(e.id);
+    });
+    const mapLegacyType = type => legacyTypeToEventId[type] || type;
 
     Object.keys(allData).forEach(date => {
       const dateData = allData[date];
@@ -161,26 +282,32 @@ function printAttendanceByGroupPDF() {
       // Handle legacy data (direct member booleans = JA)
       const isLegacy = isLegacyAttendanceData(dateData);
       if (isLegacy) {
+        const typeKey = mapLegacyType('JA');
+        const bucket = ensureBucket(typeKey);
         Object.keys(dateData).forEach(memberId => {
           if (dateData[memberId] === true) {
-            if (!punctualByType.JA[memberId]) punctualByType.JA[memberId] = new Set();
-            punctualByType.JA[memberId].add(date);
+            if (!bucket[memberId]) bucket[memberId] = new Set();
+            bucket[memberId].add(date);
           }
         });
       }
 
       // Handle typed data
-      ['JA', 'EscuelaSabatica'].forEach(type => {
+      Object.keys(dateData).forEach(type => {
         const typeData = dateData[type];
         if (!typeData || typeof typeData !== 'object') return;
         const membersData = (typeData.members && typeof typeData.members === 'object')
           ? typeData.members
           : null;
         if (!membersData) return;
+        const rawType = typeData.evento || type;
+        const event = getEventByTypeIdentifier(rawType) || getEventByTypeIdentifier(type);
+        const typeKey = event ? String(event.id) : mapLegacyType(type);
+        const bucket = ensureBucket(typeKey);
         Object.keys(membersData).forEach(memberId => {
           if (membersData[memberId] === true) {
-            if (!punctualByType[type][memberId]) punctualByType[type][memberId] = new Set();
-            punctualByType[type][memberId].add(date);
+            if (!bucket[memberId]) bucket[memberId] = new Set();
+            bucket[memberId].add(date);
           }
         });
       });
@@ -197,13 +324,15 @@ function printAttendanceByGroupPDF() {
 
     let y = 36;
 
-    const categories = [
-      { key: 'EscuelaSabatica', label: 'Escuela Sabática' },
-      { key: 'JA', label: 'JA' }
-    ];
+    const dynamicCategories = eventos.map(e => ({ key: String(e.id), label: e.name || 'Evento sin nombre' }));
+    const dynamicCategoryKeys = new Set(dynamicCategories.map(cat => cat.key));
+    const fallbackLegacyCategories = Object.keys(punctualByType)
+      .filter(key => !dynamicCategoryKeys.has(key))
+      .map(key => ({ key, label: getAttendanceTypeLabel(key) }));
+    const categories = dynamicCategories.concat(fallbackLegacyCategories);
 
     categories.forEach((cat, catIndex) => {
-      const punctualMembers = punctualByType[cat.key];
+      const punctualMembers = punctualByType[cat.key] || {};
 
       if (catIndex > 0) {
         if (y > 250) {

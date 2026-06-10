@@ -47,6 +47,7 @@
   <button class="active" onclick="showSection('participantes', this)">👥 Grupos Pequeños</button>
   <button onclick="showSection('secretaria', this)">📝 Secretaría</button>
   <button onclick="showSection('actividades', this)">📋 Actividades</button>
+  <button onclick="showSection('eventos', this)">🎪 Eventos</button>
   <button onclick="showSection('asignar', this)">🎯 Asignar Puntos</button>
   <button onclick="showSection('ranking', this)">🏅 Ranking</button>
   <button onclick="showSection('veractividades', this)">📊 Ver Actividades</button>
@@ -165,7 +166,29 @@
   </div>
 </div>
 
-<!-- SECCIÓN 4: ASIGNAR PUNTOS -->
+<!-- SECCIÓN 4: EVENTOS -->
+<div class="section" id="sec-eventos">
+  <div class="card">
+    <h2>🎪 Registrar Evento</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre del evento</label>
+        <input type="text" id="eventName" placeholder="Ej: Reunión Juvenil">
+      </div>
+      <div class="form-group">
+        <label>Descripción breve</label>
+        <textarea id="eventDescription" placeholder="Descripción del evento" rows="1"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="addEvent()" style="align-self:flex-end;">Registrar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📃 Eventos Registrados</h2>
+    <div id="eventList"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN 5: ASIGNAR PUNTOS -->
 <div class="section" id="sec-asignar">
   <div class="card">
     <div class="assign-header">
@@ -201,7 +224,7 @@
   </div>
 </div>
 
-<!-- SECCIÓN 5: RANKING -->
+<!-- SECCIÓN 6: RANKING -->
 <div class="section" id="sec-ranking">
   <div class="card">
     <h2>🏅 Ranking General</h2>
@@ -209,7 +232,7 @@
   </div>
 </div>
 
-<!-- SECCIÓN 6: VER ACTIVIDADES -->
+<!-- SECCIÓN 7: VER ACTIVIDADES -->
 <div class="section" id="sec-veractividades">
   <div class="card">
     <div class="assign-header">
@@ -220,7 +243,7 @@
   </div>
 </div>
 
-<!-- SECCIÓN 7: CONTROL DE ASISTENCIA -->
+<!-- SECCIÓN 8: CONTROL DE ASISTENCIA -->
 <div class="section" id="sec-asistencia">
   <div class="card">
     <div class="assign-header">
@@ -232,13 +255,18 @@
         <label>Fecha</label>
         <input type="date" id="attendanceDate" onchange="loadAttendance(this.value)">
       </div>
-      <div class="form-group" style="min-width:210px;">
-        <label for="attendanceType">Tipo de evento</label>
-        <select id="attendanceType" onchange="changeAttendanceEventType()">
-          <option value="">Seleccionar tipo</option>
-          <option value="JA">JA</option>
-          <option value="EscuelaSabatica">Escuela Sabática</option>
-        </select>
+      <div class="form-group" style="min-width:260px;">
+        <label for="attendanceEventSearch">Tipo de evento</label>
+        <div class="searchable-select" style="display:flex;gap:0.4rem;align-items:center;">
+          <input type="text" id="attendanceEventSearch" placeholder="Buscar evento..." autocomplete="off"
+                 oninput="filterAttendanceEventTypes()"
+                 onfocus="openAttendanceEventDropdown()"
+                 onblur="scheduleCloseAttendanceEventDropdown()"
+                 style="flex:1;">
+          <button class="btn btn-danger" onclick="clearAttendanceEventType()" title="Limpiar selección" style="padding:0.5rem 0.7rem;font-size:1rem;border-radius:8px;flex-shrink:0;">✕</button>
+          <div class="searchable-dropdown" id="attendanceEventDropdown"></div>
+          <input type="hidden" id="attendanceType" value="">
+        </div>
       </div>
       <div class="form-group" style="min-width:180px;">
         <label for="attendanceGPFilter">Filtrar por GP</label>
@@ -348,6 +376,24 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR EVENTO -->
+<div class="modal-overlay" id="modalEditEvent">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal('modalEditEvent')">&times;</button>
+    <h3>✏️ Editar Evento</h3>
+    <div class="form-group">
+      <label>Nombre</label>
+      <input type="text" id="editEventName">
+    </div>
+    <div class="form-group">
+      <label>Descripción</label>
+      <textarea id="editEventDescription"></textarea>
+    </div>
+    <input type="hidden" id="editEventId">
+    <button class="btn btn-primary" onclick="saveEditEvent()">💾 Guardar Cambios</button>
+  </div>
+</div>
+
 </div><!-- /#app-root -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -358,6 +404,7 @@
 <script src="js/ui/participantUI.js"></script>
 <script src="js/ui/memberUI.js"></script>
 <script src="js/ui/activityUI.js"></script>
+<script src="js/ui/eventUI.js"></script>
 <script src="js/ui/pointsUI.js"></script>
 <script src="js/ui/rankingUI.js"></script>
 <script src="js/ui/activitiesViewUI.js"></script>
@@ -366,6 +413,7 @@
 <script src="js/services/participantService.js"></script>
 <script src="js/services/memberService.js"></script>
 <script src="js/services/activityService.js"></script>
+<script src="js/services/eventService.js"></script>
 <script src="js/services/pointsService.js"></script>
 <script src="js/services/attendanceService.js"></script>
 <script src="js/app.js"></script>

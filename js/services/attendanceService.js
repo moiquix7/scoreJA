@@ -4,13 +4,30 @@ let attendanceCurrentDate = '';
 let attendanceCurrentType = '';
 let attendanceHistory = [];
 
-const ATTENDANCE_TYPE_LABELS = {
-  JA: 'JA',
-  EscuelaSabatica: 'Escuela Sabática'
-};
+function normalizeAttendanceTypeToken(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function getEventByTypeIdentifier(type) {
+  const key = String(type || '');
+  const keyNorm = normalizeAttendanceTypeToken(key);
+  return eventos.find(e =>
+    String(e.id) === key ||
+    normalizeAttendanceTypeToken(e.name) === keyNorm
+  ) || null;
+}
 
 function getAttendanceTypeLabel(type) {
-  return ATTENDANCE_TYPE_LABELS[type] || type || '';
+  const event = getEventByTypeIdentifier(type);
+  if (event) return event.name;
+  const normalized = normalizeAttendanceTypeToken(type);
+  if (normalized === 'escuelasabatica') return 'Escuela Sabática';
+  if (normalized === 'ja') return 'JA';
+  return type || '';
 }
 
 function getAttendanceCurrentType() {
@@ -28,8 +45,8 @@ function isLegacyAttendanceData(dateData) {
 }
 
 function setAttendanceTypeIfNeeded(date) {
-  const typeSelect = document.getElementById('attendanceType');
-  if (!typeSelect || typeSelect.value) return Promise.resolve(typeSelect ? typeSelect.value : '');
+  const typeInput = document.getElementById('attendanceType');
+  if (!typeInput || typeInput.value) return Promise.resolve(typeInput ? typeInput.value : '');
 
   return db.ref('ja_attendance/' + date).once('value').then(snap => {
     const dateData = snap.val() || {};
@@ -46,9 +63,15 @@ function setAttendanceTypeIfNeeded(date) {
       if (typedKeys.length === 1) resolvedType = typedKeys[0];
     }
 
-    if (resolvedType) typeSelect.value = resolvedType;
-    return typeSelect.value;
-  }).catch(() => typeSelect.value);
+    if (resolvedType) {
+      if (typeof selectAttendanceEventType === 'function') {
+        selectAttendanceEventType(resolvedType, getAttendanceTypeLabel(resolvedType), true);
+      } else {
+        typeInput.value = resolvedType;
+      }
+    }
+    return typeInput.value;
+  }).catch(() => typeInput.value);
 }
 
 function loadAttendance(date) {
@@ -88,7 +111,7 @@ function loadAttendance(date) {
 function toggleAttendance(memberId, isPresent) {
   if (!attendanceCurrentDate) return alert('Selecciona una fecha.');
   if (!attendanceCurrentType) {
-    alert('Selecciona el tipo de evento (JA o Escuela Sabática) para registrar asistencia.');
+    alert('Selecciona un evento. Si no hay eventos, créalos en la sección Eventos.');
     filterAttendanceByGP();
     return;
   }
@@ -219,9 +242,13 @@ function loadAttendanceHistory() {
 
 function selectAttendanceHistory(date, type) {
   const dateInput = document.getElementById('attendanceDate');
-  const typeInput = document.getElementById('attendanceType');
   if (dateInput) dateInput.value = date;
-  if (typeInput) typeInput.value = type;
+  if (typeof selectAttendanceEventType === 'function') {
+    selectAttendanceEventType(type, getAttendanceTypeLabel(type), true);
+  } else {
+    const typeInput = document.getElementById('attendanceType');
+    if (typeInput) typeInput.value = type;
+  }
   attendanceCurrentDate = date;
   attendanceCurrentType = type;
   loadAttendance(date);

@@ -114,7 +114,7 @@ nav button:hover {
   margin-bottom: 0.3rem;
 }
 
-input, select {
+input, select, textarea {
   padding: 0.6rem 0.8rem;
   border: 2px solid var(--border);
   border-radius: 8px;
@@ -125,7 +125,9 @@ input, select {
   transition: border-color 0.3s;
 }
 
-input:focus, select:focus { border-color: var(--mision); }
+textarea { resize: vertical; min-height: 42px; }
+
+input:focus, select:focus, textarea:focus { border-color: var(--mision); }
 
 .btn {
   padding: 0.6rem 1.4rem;

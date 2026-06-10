@@ -2,6 +2,7 @@
 let participants = [];
 let members = [];
 let activities = [];
+let eventos = [];
 let points = {};
 let savedPoints = {}; // snapshot of points last persisted to Firebase
 let editModeKeys = new Set(); // keys currently in replace/edit mode
@@ -14,6 +15,7 @@ function init() {
   renderParticipants();
   renderMembers();
   renderActivities();
+  renderEventos();
   renderAssignTable();
   renderSummary();
   renderRanking();
@@ -35,15 +37,17 @@ function save() {
 // ========== START ==========
 async function loadFromFirebase() {
   try {
-    const [participantsSnap, membersSnap, activitiesSnap, pointsSnap] = await Promise.all([
+    const [participantsSnap, membersSnap, activitiesSnap, eventsSnap, pointsSnap] = await Promise.all([
       db.ref('ja_participants').once('value'),
       db.ref('ja_members').once('value'),
       db.ref('ja_activities').once('value'),
+      db.ref('ja_eventos').once('value'),
       db.ref('ja_points').once('value')
     ]);
     participants = participantsSnap.val() || [];
     members = membersSnap.val() || [];
     activities = activitiesSnap.val() || [];
+    eventos = eventsSnap.val() || [];
     points = pointsSnap.val() || {};
     savedPoints = { ...points }; // snapshot of persisted values
   } catch (err) {
