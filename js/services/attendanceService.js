@@ -111,7 +111,7 @@ function loadAttendance(date) {
 function toggleAttendance(memberId, isPresent) {
   if (!attendanceCurrentDate) return alert('Selecciona una fecha.');
   if (!attendanceCurrentType) {
-    alert('Selecciona el tipo de evento para registrar asistencia. Si no hay eventos disponibles, créalos en la sección Eventos.');
+    alert('Selecciona un evento. Si no hay eventos, créalos en la sección Eventos.');
     filterAttendanceByGP();
     return;
   }

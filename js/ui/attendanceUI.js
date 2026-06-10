@@ -325,8 +325,9 @@ function printAttendanceByGroupPDF() {
     let y = 36;
 
     const dynamicCategories = eventos.map(e => ({ key: String(e.id), label: e.name || 'Evento sin nombre' }));
+    const dynamicCategoryKeys = new Set(dynamicCategories.map(cat => cat.key));
     const fallbackLegacyCategories = Object.keys(punctualByType)
-      .filter(key => !dynamicCategories.some(cat => cat.key === key))
+      .filter(key => !dynamicCategoryKeys.has(key))
       .map(key => ({ key, label: getAttendanceTypeLabel(key) }));
     const categories = dynamicCategories.concat(fallbackLegacyCategories);
 
