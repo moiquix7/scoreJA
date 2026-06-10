@@ -12,9 +12,17 @@ function renderEventos() {
       <td>${esc(e.name || '')}</td>
       <td>${esc(e.description || '')}</td>
       <td><div class="action-btns">
-        <button class="btn btn-edit" onclick="editEvent(${e.id})">Editar</button>
-        <button class="btn btn-danger" onclick="removeEvent(${e.id})">Eliminar</button>
+        <button class="btn btn-edit" onclick="editEventFromEncoded('${encodeURIComponent(String(e.id))}')">Editar</button>
+        <button class="btn btn-danger" onclick="removeEventFromEncoded('${encodeURIComponent(String(e.id))}')">Eliminar</button>
       </div></td>
     </tr>`).join('')}
   </table>`;
+}
+
+function editEventFromEncoded(encodedId) {
+  editEvent(decodeURIComponent(encodedId));
+}
+
+function removeEventFromEncoded(encodedId) {
+  removeEvent(decodeURIComponent(encodedId));
 }

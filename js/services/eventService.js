@@ -26,9 +26,7 @@ function addEvent() {
 }
 
 function removeEvent(id) {
-  const usedInAttendance = attendanceHistory.some(item => String(item.type) === String(id));
-  if (usedInAttendance && !confirm('Este evento tiene registros de asistencia. ¿Eliminar de todos modos?')) return;
-  if (!usedInAttendance && !confirm('¿Eliminar este evento?')) return;
+  if (!confirm('¿Eliminar este evento?')) return;
 
   eventos = eventos.filter(e => String(e.id) !== String(id));
   saveEvents().then(refreshEventsDependents);

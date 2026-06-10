@@ -36,9 +36,9 @@ function renderAttendanceEventDropdown(query) {
   }
   dropdown.innerHTML = filtered.map(e =>
     `<div class="searchable-dropdown-item${String(e.id) === String(currentId) ? ' selected-item' : ''}"
-          data-id="${e.id}"
+          data-id="${encodeURIComponent(String(e.id))}"
           data-name="${esc(e.name || '')}"
-          onmousedown="selectAttendanceEventType(this.dataset.id, this.dataset.name)">
+          onmousedown="selectAttendanceEventType(decodeURIComponent(this.dataset.id), this.dataset.name)">
       ${esc(e.name || '')}
     </div>`
   ).join('');
@@ -324,7 +324,7 @@ function printAttendanceByGroupPDF() {
 
     let y = 36;
 
-    const dynamicCategories = eventos.map(e => ({ key: String(e.id), label: e.name || 'Evento' }));
+    const dynamicCategories = eventos.map(e => ({ key: String(e.id), label: e.name || 'Evento sin nombre' }));
     const fallbackLegacyCategories = Object.keys(punctualByType)
       .filter(key => !dynamicCategories.some(cat => cat.key === key))
       .map(key => ({ key, label: getAttendanceTypeLabel(key) }));
