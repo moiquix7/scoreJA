@@ -61,14 +61,14 @@
   <div class="card">
     <h2>👥 Registrar Grupo Pequeño</h2>
     <div class="logo-option">
-      <label><input type="radio" name="logoType" value="emoji" checked onchange="toggleLogoType()"> Usar Emoji</label>
-      <label><input type="radio" name="logoType" value="image" onchange="toggleLogoType()"> Subir Imagen</label>
+      <label><input type="radio" name="logoType" value="emoji" onchange="toggleLogoType()"> Usar Emoji</label>
+      <label><input type="radio" name="logoType" value="image" checked onchange="toggleLogoType()"> Subir Imagen</label>
     </div>
-    <div id="emojiSection">
+    <div id="emojiSection" style="display:none; margin-bottom:0.8rem;">
       <label style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Selecciona un emoji</label>
       <div class="emoji-picker" id="emojiPicker"></div>
     </div>
-    <div id="imageSection" style="display:none; margin-bottom:0.8rem;">
+    <div id="imageSection" >
       <label style="font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Imagen / Logo</label><br>
       <input type="file" id="participantImage" accept="image/*" style="margin-top:0.3rem;font-size:0.85rem;">
     </div>
@@ -170,7 +170,7 @@
 <!-- SECCIÓN 4: EVENTOS -->
 <div class="section" id="sec-eventos">
   <div class="card">
-    <h2>🎪 Registrar Evento</h2>
+    <h2>📅 Registrar Evento</h2>
     <div class="form-row">
       <div class="form-group">
         <label>Nombre del evento</label>

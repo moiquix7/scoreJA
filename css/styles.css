@@ -1,7 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --mision: #474891;
+  --mision: #007df9;
   --comunion: #f59e0b;
   --relacion: #10b981;
   --bg: #0f172a;
@@ -152,6 +152,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--mision); }
 
 .action-btns { display: flex; gap: 0.4rem; }
 
+
 .emoji-picker {
   display: flex;
   gap: 0.4rem;
@@ -210,7 +211,7 @@ tr:hover td { background: rgba(99,102,241,0.05); }
   letter-spacing: 1px;
 }
 
-.badge-mision { background: rgba(232, 96, 244, 0.2); color: var(--mision); }
+.badge-mision { background: rgba(12, 34, 94, 0.2); color: var(--mision); }
 .badge-comunion { background: rgba(245,158,11,0.2); color: var(--comunion); }
 .badge-relacion { background: rgba(16,185,129,0.2); color: var(--relacion); }
 
@@ -446,7 +447,7 @@ tr:hover td { background: rgba(99,102,241,0.05); }
 
 .searchable-dropdown-item:hover,
 .searchable-dropdown-item.selected-item {
-  background: rgba(99,102,241,0.2);
+  background: rgba(12, 34, 94, 0.2);
 }
 
 .searchable-dropdown-empty {
