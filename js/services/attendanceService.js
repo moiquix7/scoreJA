@@ -130,8 +130,8 @@ function toggleAttendance(memberId, isPresent) {
     .then(() => loadAttendanceHistory())
     .catch(err => console.error('Error guardando asistencia:', err));
 
-  // Update summary
-  updateAttendanceSummary(getFilteredAttendanceMembers().filteredMembers);
+  // Refresh table and summary
+  applyAttendanceFilters();
 }
 
 function changeAttendanceEventType() {
