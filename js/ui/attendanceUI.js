@@ -9,6 +9,10 @@ function attendanceMemberMatchesName(member, nameFilter) {
   return fullName.includes(nameFilter);
 }
 
+function isMemberPresent(member) {
+  return attendanceData[member.id] === true;
+}
+
 let _closeAttendanceEventTimeout = null;
 
 function getAttendanceEventNameById(id) {
@@ -170,11 +174,15 @@ function applyAttendanceFilters() {
     return;
   }
 
-  if (filteredMembers.length === 0) {
+  // Una vez conocidos la fecha y el tipo de evento, mostrar en la tabla
+  // unicamente los miembros marcados como presentes (estatus presente / true).
+  const presentMembers = filteredMembers.filter(isMemberPresent);
+
+  if (presentMembers.length === 0) {
     wrap.innerHTML = `<p style="color:var(--muted);text-align:center;padding:1rem;">${
       hasNameFilter || hasGpFilter
-        ? 'No hay miembros que coincidan con los filtros seleccionados.'
-        : 'No hay miembros registrados.'
+        ? 'No hay miembros presentes que coincidan con los filtros seleccionados.'
+        : 'No hay miembros presentes registrados para este evento.'
     }</p>`;
     updateAttendanceSummary(filteredMembers);
     return;
@@ -182,7 +190,7 @@ function applyAttendanceFilters() {
 
   wrap.innerHTML = `<table>
     <tr><th>Miembro</th><th>GP</th><th>Asistencia</th><th>Estado</th></tr>
-    ${filteredMembers.map(m => {
+    ${presentMembers.map(m => {
       const gp = participants.find(p => p.id === m.gpId);
       const gpName = gp ? gp.name : (m.gpName || 'Sin GP');
       const present = !!attendanceData[m.id];
