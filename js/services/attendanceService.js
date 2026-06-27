@@ -3,6 +3,15 @@ let attendanceData = {}; // { memberId: true/false }
 let attendanceCurrentDate = '';
 let attendanceCurrentType = '';
 let attendanceHistory = [];
+let attendanceShowOnlyPresent = false;
+
+function setAttendanceShowOnlyPresent(value) {
+  attendanceShowOnlyPresent = value === true;
+}
+
+function getAttendanceShowOnlyPresent() {
+  return attendanceShowOnlyPresent === true;
+}
 
 function normalizeAttendanceTypeToken(value) {
   return String(value || '')
@@ -74,8 +83,9 @@ function setAttendanceTypeIfNeeded(date) {
   }).catch(() => typeInput.value);
 }
 
-function loadAttendance(date) {
+function loadAttendance(date, showOnlyPresent) {
   if (!date) return;
+  setAttendanceShowOnlyPresent(typeof showOnlyPresent === 'boolean' ? showOnlyPresent : false);
   attendanceCurrentDate = date;
   setAttendanceTypeIfNeeded(date).then(() => {
     attendanceCurrentType = getAttendanceCurrentType();
@@ -251,5 +261,5 @@ function selectAttendanceHistory(date, type) {
   }
   attendanceCurrentDate = date;
   attendanceCurrentType = type;
-  loadAttendance(date);
+  loadAttendance(date, true);
 }
