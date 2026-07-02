@@ -106,6 +106,11 @@ function renderAssignTable() {
       const editBtnLabel = isEditing ? '✏️ Editando' : '✏️ Editar';
       const stepLabel = isEditing ? 'reemplazar total' : `+${STEP} pts (sumar)`;
       const savedLabel = hasSaved ? `<div class="step-label" style="color:var(--muted);">guardado: ${savedVal}</div>` : '';
+      // Only show the last-registered date when a saved record with a timestamp exists; otherwise empty
+      const lastTs = pointsTimestamps[key];
+      const lastRegisteredLabel = (hasSaved && lastTs)
+        ? `<div class="step-label" style="color:var(--muted);">Registrado: ${esc(formatDateTime(lastTs))}</div>`
+        : '';
       return `<tr>
         <td>${logoHTML(p)} ${esc(p.name)}</td>
         <td>
@@ -122,10 +127,10 @@ function renderAssignTable() {
                      onblur="onPointsBlur(${p.id},${act.id})"
                      onkeydown="onPointsKeydown(event,${p.id},${act.id})">
               <div class="step-label">${stepLabel}</div>
-              ${savedLabel}
             </div>
             <button class="stepper-btn plus" onclick="changePoints(${p.id},${act.id},${STEP})">+</button>
           </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.15rem;margin-top:0.25rem;">${savedLabel}${lastRegisteredLabel}</div>
           <div style="text-align:center;margin-top:0.4rem;">
             <button class="btn ${editBtnClass}" style="font-size:0.75rem;padding:0.3rem 0.7rem;" onclick="enterEditMode(${p.id},${act.id})" ${editBtnDisabled}>${editBtnLabel}</button>
           </div>

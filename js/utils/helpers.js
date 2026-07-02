@@ -21,3 +21,15 @@ function getBarColor(name) {
 function sanitizeFilename(text) {
   return String(text || 'archivo').toLowerCase().replace(/[^a-z0-9]+/g, '_');
 }
+
+// Formats an ISO date string into a readable local date/time (dd/mm/yyyy hh:mm)
+function formatDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-ES', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+

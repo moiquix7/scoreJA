@@ -5,6 +5,7 @@ function savePoints() {
 
   // Final validation before save
   let hasError = false;
+  const now = new Date().toISOString();
   participants.forEach(p => {
     const key = p.id + '-' + actId;
     const input = document.getElementById('pv-' + key);
@@ -20,9 +21,11 @@ function savePoints() {
       if (editModeKeys.has(key)) {
         // Edit mode: replace the stored value with the typed total
         points[key] = val;
+        pointsTimestamps[key] = now; // editing counts as a new registration
       } else {
         // Normal mode: add the typed delta to the previously saved value
         points[key] = (savedPoints[key] || 0) + val;
+        if (val > 0) pointsTimestamps[key] = now; // only when points were actually added
       }
     }
   });
@@ -49,6 +52,7 @@ function clearAllPoints() {
     const key = p.id + '-' + actId;
     points[key] = 0;
     savedPoints[key] = 0;
+    delete pointsTimestamps[key]; // clear last-registered date
   });
   editModeKeys.clear();
   save();
