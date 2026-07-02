@@ -99,6 +99,10 @@ function renderAssignTable() {
       const isEditing = editModeKeys.has(key);
       const hasSaved = key in savedPoints;
       const savedVal = savedPoints[key] || 0;
+      const rawLastLog = pointsLog[p.id];
+      const lastLogDate = rawLastLog ? new Date(rawLastLog) : null;
+      const hasValidLastLog = lastLogDate && !isNaN(lastLogDate.getTime());
+      const lastLogLabel = hasValidLastLog ? lastLogDate.toLocaleString('es-BO') : 'Sin registros';
       // In edit mode show the saved value (to replace); in normal mode show 0 (delta to add)
       const inputVal = isEditing ? savedVal : 0;
       const editBtnDisabled = hasSaved ? '' : 'disabled';
@@ -107,7 +111,10 @@ function renderAssignTable() {
       const stepLabel = isEditing ? 'reemplazar total' : `+${STEP} pts (sumar)`;
       const savedLabel = hasSaved ? `<div class="step-label" style="color:var(--muted);">guardado: ${savedVal}</div>` : '';
       return `<tr>
-        <td>${logoHTML(p)} ${esc(p.name)}</td>
+        <td>
+          ${logoHTML(p)} ${esc(p.name)}
+          <div class="step-label" style="color:var(--muted);">último registro: ${esc(lastLogLabel)}</div>
+        </td>
         <td>
           <div class="points-stepper">
             <button class="stepper-btn minus" onclick="changePoints(${p.id},${act.id},-${STEP})">−</button>

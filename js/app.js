@@ -4,6 +4,7 @@ let members = [];
 let activities = [];
 let eventos = [];
 let points = {};
+let pointsLog = {}; // participantId => ISO date of last saved points update
 let savedPoints = {}; // snapshot of points last persisted to Firebase
 let editModeKeys = new Set(); // keys currently in replace/edit mode
 
@@ -27,7 +28,8 @@ function save() {
     ja_participants: participants,
     ja_members: members,
     ja_activities: activities,
-    ja_points: points
+    ja_points: points,
+    ja_points_log: pointsLog
   }).catch(err => {
     console.error('Error guardando datos en Firebase:', err);
     alert('⚠️ No se pudieron guardar los datos. Verifica tu conexión y la configuración de Firebase.');
@@ -37,18 +39,20 @@ function save() {
 // ========== START ==========
 async function loadFromFirebase() {
   try {
-    const [participantsSnap, membersSnap, activitiesSnap, eventsSnap, pointsSnap] = await Promise.all([
+    const [participantsSnap, membersSnap, activitiesSnap, eventsSnap, pointsSnap, pointsLogSnap] = await Promise.all([
       db.ref('ja_participants').once('value'),
       db.ref('ja_members').once('value'),
       db.ref('ja_activities').once('value'),
       db.ref('ja_eventos').once('value'),
-      db.ref('ja_points').once('value')
+      db.ref('ja_points').once('value'),
+      db.ref('ja_points_log').once('value')
     ]);
     participants = participantsSnap.val() || [];
     members = membersSnap.val() || [];
     activities = activitiesSnap.val() || [];
     eventos = eventsSnap.val() || [];
     points = pointsSnap.val() || {};
+    pointsLog = pointsLogSnap.val() || {};
     savedPoints = { ...points }; // snapshot of persisted values
   } catch (err) {
     console.error('Error cargando datos desde Firebase:', err);

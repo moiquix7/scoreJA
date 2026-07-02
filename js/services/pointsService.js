@@ -2,11 +2,13 @@
 function savePoints() {
   const actId = document.getElementById('assignActivity').value;
   if (!actId) return alert('Selecciona una actividad.');
+  const nowISO = new Date().toISOString();
 
   // Final validation before save
   let hasError = false;
   participants.forEach(p => {
     const key = p.id + '-' + actId;
+    const prevSavedVal = savedPoints[key] || 0;
     const input = document.getElementById('pv-' + key);
     if (input) {
       let val = parseInt(input.value);
@@ -22,7 +24,10 @@ function savePoints() {
         points[key] = val;
       } else {
         // Normal mode: add the typed delta to the previously saved value
-        points[key] = (savedPoints[key] || 0) + val;
+        points[key] = prevSavedVal + val;
+      }
+      if (points[key] !== prevSavedVal) {
+        pointsLog[p.id] = nowISO;
       }
     }
   });
