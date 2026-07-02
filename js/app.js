@@ -5,6 +5,7 @@ let activities = [];
 let eventos = [];
 let points = {};
 let savedPoints = {}; // snapshot of points last persisted to Firebase
+let pointsTimestamps = {}; // last-registered date/time per "pId-aId" key (persisted inside ja_points)
 let editModeKeys = new Set(); // keys currently in replace/edit mode
 
 const STEP = 10;
@@ -27,7 +28,8 @@ function save() {
     ja_participants: participants,
     ja_members: members,
     ja_activities: activities,
-    ja_points: points
+    // Timestamps are stored inside the ja_points node so they can be recovered from there
+    ja_points: { ...points, _timestamps: pointsTimestamps }
   }).catch(err => {
     console.error('Error guardando datos en Firebase:', err);
     alert('⚠️ No se pudieron guardar los datos. Verifica tu conexión y la configuración de Firebase.');
@@ -48,7 +50,11 @@ async function loadFromFirebase() {
     members = membersSnap.val() || [];
     activities = activitiesSnap.val() || [];
     eventos = eventsSnap.val() || [];
-    points = pointsSnap.val() || {};
+    const rawPoints = pointsSnap.val() || {};
+    // Extract the persisted timestamps and keep the points map as a pure numeric map
+    pointsTimestamps = rawPoints._timestamps || {};
+    delete rawPoints._timestamps;
+    points = rawPoints;
     savedPoints = { ...points }; // snapshot of persisted values
   } catch (err) {
     console.error('Error cargando datos desde Firebase:', err);
