@@ -15,6 +15,10 @@ function getBarColor(name) {
   if (n.includes('heroes de fe')) return '#f10909';
   if (n.includes('portadores de luz')) return '#e6f513';
   if (n.includes('leones de judá')) return '#0e9740';
+  // Varones (senior) → azul claro
+  if (n.includes('varones (senior)')) return '#2f6fe4';
+  // Damas (senior) → palo de rosa
+  if (n.includes('damas (senior)')) return '#d98695';
   return n;
 }
 
