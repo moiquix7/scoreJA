@@ -20,11 +20,13 @@ function populateAssignSelect() {
 
 function renderAssignDropdown(query) {
   const dropdown = document.getElementById('assignActivityDropdown');
+  // Solo mostrar las actividades que contengan el texto "(senior)" en su nombre
+  const seniorActivities = activities.filter(a => (a.name || '').toLowerCase().includes('(senior)'));
   const filtered = query
-    ? activities.filter(a =>
+    ? seniorActivities.filter(a =>
         a.name.toLowerCase().includes(query.toLowerCase()) ||
         a.type.toLowerCase().includes(query.toLowerCase()))
-    : activities;
+    : seniorActivities;
   if (!filtered.length) {
     dropdown.innerHTML = '<div class="searchable-dropdown-empty">No se encontraron actividades</div>';
     return;
@@ -80,7 +82,10 @@ function renderAssignTable() {
   const wrap = document.getElementById('assignTableWrap');
   const actId = document.getElementById('assignActivity').value;
 
-  if (!participants.length || !actId) {
+  // Solo mostrar los participantes que contengan el texto "(senior)" en su nombre
+  const seniorParticipants = participants.filter(p => (p.name || '').toLowerCase().includes('(senior)'));
+
+  if (!seniorParticipants.length || !actId) {
     wrap.innerHTML = '<div class="empty-state">Selecciona una actividad y asegúrate de tener participantes registrados.</div>';
     return;
   }
@@ -94,7 +99,7 @@ function renderAssignTable() {
       <th>Participante</th>
       <th class="th-${colorClass}" style="text-align:center;">${esc(act.name)} <span class="badge badge-${colorClass}">${act.type}</span> ${act.pts !== undefined ? esc(act.pts)+' Pts'  : ''}</th>
     </tr>
-    ${participants.map(p => {
+    ${seniorParticipants.map(p => {
       const key = p.id + '-' + act.id;
       const isEditing = editModeKeys.has(key);
       const hasSaved = key in savedPoints;
@@ -142,7 +147,9 @@ function renderAssignTable() {
 
 function renderSummary() {
   const wrap = document.getElementById('summaryTableWrap');
-  if (!participants.length) { wrap.innerHTML = '<div class="empty-state">No hay datos.</div>'; return; }
+  // Solo mostrar los participantes que contengan el texto "(senior)" en su nombre
+  const seniorParticipants = participants.filter(p => (p.name || '').toLowerCase().includes('(senior)'));
+  if (!seniorParticipants.length) { wrap.innerHTML = '<div class="empty-state">No hay datos.</div>'; return; }
 
   function getTypeTotal(pId, type) {
     return activities.filter(a => a.type === type).reduce((sum, a) => sum + (points[pId + '-' + a.id] || 0), 0);
@@ -156,7 +163,7 @@ function renderSummary() {
       <th class="th-relacion" style="text-align:center;">🤝 Relación</th>
       <th style="text-align:center;">Total</th>
     </tr>
-    ${participants.map(p => {
+    ${seniorParticipants.map(p => {
       const m = getTypeTotal(p.id, 'Mision');
       const c = getTypeTotal(p.id, 'Comunion');
       const r = getTypeTotal(p.id, 'Relacion');

@@ -1,9 +1,11 @@
 // ========== RANKING UI ==========
 function renderRanking() {
   const el = document.getElementById('rankingList');
-  if (!participants.length) { el.innerHTML = '<div class="empty-state">No hay GPs.</div>'; return; }
+  // Solo mostrar los participantes que contengan el texto "(senior)" en su nombre
+  const seniorParticipants = participants.filter(p => (p.name || '').toLowerCase().includes('(senior)'));
+  if (!seniorParticipants.length) { el.innerHTML = '<div class="empty-state">No hay GPs.</div>'; return; }
 
-  const data = participants.map(p => {
+  const data = seniorParticipants.map(p => {
     const m = activities.filter(a => a.type === 'Mision').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
     const c = activities.filter(a => a.type === 'Comunion').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
     const r = activities.filter(a => a.type === 'Relacion').reduce((s, a) => s + (points[p.id + '-' + a.id] || 0), 0);
