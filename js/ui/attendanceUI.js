@@ -93,7 +93,13 @@ function clearAttendanceEventType(skipReload) {
   if (hiddenInput) hiddenInput.value = '';
   if (searchInput) searchInput.value = '';
   document.getElementById('attendanceEventDropdown').classList.remove('open');
-  if (!skipReload) changeAttendanceEventType();
+  if (skipReload) return;
+  // No usar loadAttendance aquí: setAttendanceTypeIfNeeded volvería a autocompletar el tipo
+  attendanceCurrentType = '';
+  attendanceData = {};
+  attendanceCheckins = {};
+  setAttendanceShowOnlyPresent(false);
+  filterAttendanceByGP();
 }
 
 function refreshAttendanceEventTypes() {
@@ -194,11 +200,12 @@ function applyAttendanceFilters() {
   }
 
   wrap.innerHTML = `<table>
-    <tr><th>Miembro</th><th>GP</th><th>Asistencia</th><th>Estado</th></tr>
+    <tr><th>Miembro</th><th>GP</th><th>Asistencia</th><th>Estado</th><th>Hora de registro</th></tr>
     ${membersToRender.map(m => {
       const gp = participants.find(p => p.id === m.gpId);
       const gpName = gp ? gp.name : (m.gpName || 'Sin GP');
       const present = !!attendanceData[m.id];
+      const checkin = present ? formatAttendanceCheckin(attendanceCheckins[m.id]) : '';
       return `<tr id="att-row-${m.id}">
         <td>${esc((m.nombre || '') + ' ' + (m.apellido || ''))}</td>
         <td>${esc(gpName)}</td>
@@ -211,6 +218,7 @@ function applyAttendanceFilters() {
         <td id="att-status-${m.id}" style="font-weight:700;color:${present ? 'var(--relacion)' : 'var(--danger)'};">
           ${present ? 'Puntual' : 'Retrasado'}
         </td>
+        <td id="att-checkin-${m.id}" style="color:var(--muted);">${checkin ? esc(checkin) : '—'}</td>
       </tr>`;
     }).join('')}
   </table>`;
@@ -300,8 +308,8 @@ function printAttendanceByGroupPDF() {
         const bucket = ensureBucket(typeKey);
         Object.keys(dateData).forEach(memberId => {
           if (dateData[memberId] === true) {
-            if (!bucket[memberId]) bucket[memberId] = new Set();
-            bucket[memberId].add(date);
+            if (!bucket[memberId]) bucket[memberId] = new Map();
+            if (!bucket[memberId].has(date)) bucket[memberId].set(date, null);
           }
         });
       }
@@ -314,14 +322,17 @@ function printAttendanceByGroupPDF() {
           ? typeData.members
           : null;
         if (!membersData) return;
+        const checkinsData = (typeData.checkins && typeof typeData.checkins === 'object')
+          ? typeData.checkins
+          : {};
         const rawType = typeData.evento || type;
         const event = getEventByTypeIdentifier(rawType) || getEventByTypeIdentifier(type);
         const typeKey = event ? String(event.id) : mapLegacyType(type);
         const bucket = ensureBucket(typeKey);
         Object.keys(membersData).forEach(memberId => {
           if (membersData[memberId] === true) {
-            if (!bucket[memberId]) bucket[memberId] = new Set();
-            bucket[memberId].add(date);
+            if (!bucket[memberId]) bucket[memberId] = new Map();
+            bucket[memberId].set(date, checkinsData[memberId] || bucket[memberId].get(date) || null);
           }
         });
       });
@@ -383,9 +394,13 @@ function printAttendanceByGroupPDF() {
         y += 3;
 
         const rows = punctualInGroup.map(m => {
-          const datesSet = punctualMembers[String(m.id)];
-          const dates = datesSet ? Array.from(datesSet).sort() : [];
-          return [m.nombre || '', m.apellido || '', String(dates.length), dates.join(', ')];
+          const datesMap = punctualMembers[String(m.id)];
+          const dates = datesMap ? Array.from(datesMap.keys()).sort() : [];
+          const datesWithTime = dates.map(date => {
+            const time = formatAttendanceCheckinTime(datesMap.get(date));
+            return time ? `${date} (${time})` : date;
+          });
+          return [m.nombre || '', m.apellido || '', String(dates.length), datesWithTime.join(', ')];
         });
 
         catTotal += punctualInGroup.length;
@@ -397,13 +412,13 @@ function printAttendanceByGroupPDF() {
 
         doc.autoTable({
           startY: y + 2,
-          head: [['Nombre', 'Apellido', 'Veces Puntual', 'Fechas']],
+          head: [['Nombre', 'Apellido', 'Veces Puntual', 'Fechas (hora de registro)']],
           body: rows,
           styles: { fontSize: 8, cellPadding: 2.5 },
           headStyles: { fillColor: [99, 102, 241], textColor: 255, fontStyle: 'bold' },
           alternateRowStyles: { fillColor: [241, 245, 249] },
           columnStyles: {
-            3: { cellWidth: 60 }
+            3: { cellWidth: 80 }
           }
         });
 
