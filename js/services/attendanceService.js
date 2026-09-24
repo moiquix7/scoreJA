@@ -1,5 +1,6 @@
 // ========== ATTENDANCE SERVICE ==========
 let attendanceData = {}; // { memberId: true/false }
+let attendanceCheckins = {}; // { memberId: timestamp (ms) del registro de asistencia }
 let attendanceCurrentDate = '';
 let attendanceCurrentType = '';
 let attendanceHistory = [];
@@ -92,6 +93,7 @@ function loadAttendance(date, showOnlyPresent) {
 
     if (!attendanceCurrentType) {
       attendanceData = {};
+      attendanceCheckins = {};
       filterAttendanceByGP();
       return;
     }
@@ -100,6 +102,9 @@ function loadAttendance(date, showOnlyPresent) {
     const raw = snap.val() || {};
     attendanceData = (raw && typeof raw === 'object' && raw.members && typeof raw.members === 'object')
       ? raw.members
+      : {};
+    attendanceCheckins = (raw && typeof raw === 'object' && raw.checkins && typeof raw.checkins === 'object')
+      ? raw.checkins
       : {};
 
     if (!Object.keys(attendanceData).length) {
@@ -127,6 +132,13 @@ function toggleAttendance(memberId, isPresent) {
   }
 
   attendanceData[memberId] = isPresent;
+  // Registrar fecha y hora al marcar presente; limpiar al desmarcar
+  const checkinTime = isPresent ? Date.now() : null;
+  if (isPresent) {
+    attendanceCheckins[memberId] = checkinTime;
+  } else {
+    delete attendanceCheckins[memberId];
+  }
   const statusEl = document.getElementById('att-status-' + memberId);
   if (statusEl) {
     statusEl.textContent = isPresent ? 'Puntual' : 'Retrasado';
@@ -136,7 +148,10 @@ function toggleAttendance(memberId, isPresent) {
   // Save to Firebase
   const attendanceNode = db.ref(getAttendanceNode(attendanceCurrentDate, attendanceCurrentType));
   attendanceNode.update({ evento: attendanceCurrentType })
-    .then(() => attendanceNode.child('members/' + memberId).set(isPresent))
+    .then(() => attendanceNode.update({
+      ['members/' + memberId]: isPresent,
+      ['checkins/' + memberId]: checkinTime
+    }))
     .then(() => loadAttendanceHistory())
     .catch(err => console.error('Error guardando asistencia:', err));
 
@@ -151,8 +166,26 @@ function changeAttendanceEventType() {
     loadAttendance(dateInput.value);
   } else {
     attendanceData = {};
+    attendanceCheckins = {};
     filterAttendanceByGP();
   }
+}
+
+function formatAttendanceCheckin(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-BO', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+}
+
+function formatAttendanceCheckinTime(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function computeMostPunctualMember(data) {
