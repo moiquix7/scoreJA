@@ -131,6 +131,47 @@ function refreshAttendanceEventTypes() {
 }
 
 
+function showTopPunctualMembers() {
+  const wrap = document.getElementById('topPunctualWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="empty-state">Revisando todos los registros de asistencia...</div>';
+  openModal('modalTopPunctual');
+  loadTopPunctualMembers(3)
+    .then(renderTopPunctualMembers)
+    .catch(err => {
+      console.error('Error calculando los más puntuales:', err);
+      wrap.innerHTML = '<div class="empty-state">No se pudo cargar el historial de asistencia.</div>';
+    });
+}
+
+function renderTopPunctualMembers(ranking) {
+  const wrap = document.getElementById('topPunctualWrap');
+  if (!wrap) return;
+  if (!ranking || !ranking.length) {
+    wrap.innerHTML = '<div class="empty-state">Aún no hay registros de asistencia puntual.</div>';
+    return;
+  }
+  const medals = ['🥇', '🥈', '🥉'];
+  wrap.innerHTML = ranking.map((r, i) => {
+    const m = r.member;
+    const gp = participants.find(p => p.id === m.gpId);
+    const gpName = gp ? gp.name : (m.gpName || 'Sin GP');
+    const avgMinutes = r.avgCheckinMinutes === null ? null : Math.round(r.avgCheckinMinutes);
+    const avgTime = avgMinutes === null
+      ? ''
+      : `${String(Math.floor(avgMinutes / 60) % 24).padStart(2, '0')}:${String(avgMinutes % 60).padStart(2, '0')}`;
+    return `<div class="most-punctual-badge top-punctual-item top-punctual-${i + 1}">
+      <div class="most-punctual-icon">${medals[i] || '⭐'}</div>
+      <div class="most-punctual-info">
+        <div class="most-punctual-name">${esc((m.nombre || '') + ' ' + (m.apellido || ''))}</div>
+        <div class="most-punctual-gp">${esc(gpName)}</div>
+        <div class="most-punctual-count">${r.punctual} asistencia${r.punctual !== 1 ? 's' : ''} puntual${r.punctual !== 1 ? 'es' : ''} de ${r.total} registro${r.total !== 1 ? 's' : ''}</div>
+        ${avgTime ? `<div class="most-punctual-gp">Hora promedio de registro: ${avgTime}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderAsistencia() {
   // Set default date to today if not set
   const dateInput = document.getElementById('attendanceDate');

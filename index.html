@@ -249,7 +249,10 @@
   <div class="card">
     <div class="assign-header">
       <h2>📋 Control de Asistencia</h2>
-      <button class="btn btn-primary" onclick="printAttendanceByGroupPDF()">🖨️ Imprimir Asistencia por Grupo</button>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-warning" onclick="showTopPunctualMembers()">🏆 Top 3 Puntuales</button>
+        <button class="btn btn-primary" onclick="printAttendanceByGroupPDF()">🖨️ Imprimir Asistencia por Grupo</button>
+      </div>
     </div>
     <div class="form-row" style="gap:1rem; margin-bottom:1rem;">
       <div class="form-group" style="min-width:160px;">
@@ -300,6 +303,16 @@
   <div class="card">
     <h2>📅 Historial de Asistencia</h2>
     <div style="overflow-x:auto;" id="attendanceHistoryWrap"></div>
+  </div>
+</div>
+
+<!-- MODAL TOP 3 MÁS PUNTUALES -->
+<div class="modal-overlay" id="modalTopPunctual" onclick="if (event.target === this) closeModal('modalTopPunctual')">
+  <div class="modal" style="max-width:520px;">
+    <button class="close-btn" onclick="closeModal('modalTopPunctual')">&times;</button>
+    <h3>🏆 Top 3 Más Puntuales</h3>
+    <p class="top-punctual-note">Calculado sobre todos los registros de asistencia (todas las fechas y eventos).</p>
+    <div id="topPunctualWrap"></div>
   </div>
 </div>
 
