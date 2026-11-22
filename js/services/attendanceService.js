@@ -188,44 +188,89 @@ function formatAttendanceCheckinTime(timestamp) {
   return d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-function computeMostPunctualMember(data) {
-  const counts = {};
-  Object.keys(data).forEach(date => {
+// Recorre TODOS los registros de asistencia (todas las fechas y todos los eventos)
+// y devuelve los miembros con más registros puntuales.
+// Orden: más registros puntuales → menos registros con retraso → hora promedio de registro más temprana → nombre.
+function computeTopPunctualMembers(data, limit) {
+  const max = typeof limit === 'number' && limit > 0 ? limit : 3;
+  const stats = {}; // { memberId: { punctual, late, records:Set, checkinMinutes:[] } }
+  const ensureStats = memberId => {
+    if (!stats[memberId]) stats[memberId] = { punctual: 0, late: 0, records: new Set(), checkinMinutes: [] };
+    return stats[memberId];
+  };
+  const addRecord = (memberId, recordKey, isPresent, checkin) => {
+    const st = ensureStats(memberId);
+    if (st.records.has(recordKey)) return; // evita contar dos veces el mismo evento/fecha
+    st.records.add(recordKey);
+    if (isPresent) {
+      st.punctual += 1;
+      const d = checkin ? new Date(checkin) : null;
+      if (d && !isNaN(d.getTime())) st.checkinMinutes.push(d.getHours() * 60 + d.getMinutes());
+    } else {
+      st.late += 1;
+    }
+  };
+
+  Object.keys(data || {}).forEach(date => {
     const dateData = data[date];
     if (!dateData || typeof dateData !== 'object') return;
-    const isLegacy = isLegacyAttendanceData(dateData);
-    if (isLegacy) {
+
+    // Datos legacy: { memberId: boolean } directamente bajo la fecha (evento JA)
+    if (isLegacyAttendanceData(dateData)) {
+      const typeKey = String((getEventByTypeIdentifier('JA') || {}).id || 'JA');
       Object.keys(dateData).forEach(memberId => {
-        if (dateData[memberId] === true) {
-          counts[memberId] = (counts[memberId] || 0) + 1;
-        }
-      });
-    } else {
-      Object.keys(dateData).forEach(type => {
-        const typeData = dateData[type];
-        if (!typeData || typeof typeData !== 'object') return;
-        const membersData = (typeData.members && typeof typeData.members === 'object')
-          ? typeData.members
-          : null;
-        if (!membersData) return;
-        Object.keys(membersData).forEach(memberId => {
-          if (membersData[memberId] === true) {
-            counts[memberId] = (counts[memberId] || 0) + 1;
-          }
-        });
+        if (typeof dateData[memberId] !== 'boolean') return;
+        addRecord(memberId, date + '__' + typeKey, dateData[memberId] === true, null);
       });
     }
+
+    // Datos por tipo de evento: { tipo: { evento, members:{}, checkins:{} } }
+    Object.keys(dateData).forEach(type => {
+      const typeData = dateData[type];
+      if (!typeData || typeof typeData !== 'object') return;
+      const membersData = (typeData.members && typeof typeData.members === 'object') ? typeData.members : null;
+      if (!membersData) return;
+      const checkinsData = (typeData.checkins && typeof typeData.checkins === 'object') ? typeData.checkins : {};
+      const event = getEventByTypeIdentifier(typeData.evento || type) || getEventByTypeIdentifier(type);
+      const typeKey = event ? String(event.id) : type;
+      Object.keys(membersData).forEach(memberId => {
+        if (typeof membersData[memberId] !== 'boolean') return;
+        addRecord(memberId, date + '__' + typeKey, membersData[memberId] === true, checkinsData[memberId]);
+      });
+    });
   });
-  let bestId = null;
-  let bestCount = 0;
-  // In case of a tie, the first member encountered wins (Object.keys insertion order)
-  Object.keys(counts).forEach(memberId => {
-    if (counts[memberId] > bestCount) {
-      bestCount = counts[memberId];
-      bestId = memberId;
-    }
-  });
-  return bestCount > 0 ? { memberId: bestId, count: bestCount } : null;
+
+  const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  return Object.keys(stats)
+    .map(memberId => {
+      const member = members.find(m => String(m.id) === String(memberId));
+      const st = stats[memberId];
+      return {
+        memberId,
+        member,
+        punctual: st.punctual,
+        late: st.late,
+        total: st.records.size,
+        avgCheckinMinutes: avg(st.checkinMinutes)
+      };
+    })
+    .filter(r => r.member && r.punctual > 0)
+    .sort((a, b) => {
+      if (b.punctual !== a.punctual) return b.punctual - a.punctual;
+      if (a.late !== b.late) return a.late - b.late;
+      const aAvg = a.avgCheckinMinutes === null ? Infinity : a.avgCheckinMinutes;
+      const bAvg = b.avgCheckinMinutes === null ? Infinity : b.avgCheckinMinutes;
+      if (aAvg !== bAvg) return aAvg - bAvg;
+      const aName = `${a.member.nombre || ''} ${a.member.apellido || ''}`.trim();
+      const bName = `${b.member.nombre || ''} ${b.member.apellido || ''}`.trim();
+      return aName.localeCompare(bName, 'es');
+    })
+    .slice(0, max);
+}
+
+function loadTopPunctualMembers(limit) {
+  return db.ref('ja_attendance').once('value')
+    .then(snap => computeTopPunctualMembers(snap.val() || {}, limit));
 }
 
 function loadAttendanceHistory() {
@@ -278,8 +323,6 @@ function loadAttendanceHistory() {
 
     attendanceHistory = uniqueEntries;
     renderAttendanceHistory();
-    const mostPunctual = computeMostPunctualMember(data);
-    renderMostPunctualMember(mostPunctual);
   }).catch(err => console.error('Error cargando historial de asistencia:', err));
 }
 
